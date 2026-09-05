@@ -41,10 +41,10 @@ Newest entries at the top. Short on purpose.
 ## 2026-09-05 — Session 8: Slowing down to one thing at a time
 
 **Asked for:** stop doing ten things per reply. One problem, one answer, then move on. Also a notes file for domain facts worth re-reading.
-**Built:** `LEARNING-NOTES.md` with the bank EMI rules. Two new rules in `CLAUDE.md`: one thing per reply, and keep the learning notes. Settled the headline feature (Manager's Morning Briefing), the EMI percentage (50% everywhere), and the folder layout. Started installing git, Python and Node.
-**Found:** the restriction confusion was mine. This is Rohit's personal laptop with no limits. The Wipro laptop is the restricted one and nothing gets built there.
+**Built:** `LEARNING-NOTES.md` with the bank EMI rules. Two new rules in `CLAUDE.md`: one thing per reply, and keep the learning notes. Settled the headline feature (Manager's Morning Briefing), the EMI percentage (50% everywhere), and the folder layout. Installed git, Python 3.11 and Node 24. Started the git repository, made the first commit, and pushed it to a private GitHub repository. **Piece 0 done.**
+**Found:** the restriction confusion was mine. This is Rohit's personal laptop with no limits. The Wipro laptop is the restricted one and nothing gets built there. Also: the editor's shell won't see the new tools until VS Code restarts, so I refresh the PATH at the start of each command for now.
 **Realised:** Rohit isn't reading the reading lists. From now on I walk him through one item at a time and ask before moving on.
-**Next:** finish the installs, then he creates the GitHub repository. Then Piece 1.
+**Next:** Piece 1, the project skeleton.
 
 ---
 
