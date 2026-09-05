@@ -38,6 +38,16 @@ Newest entries at the top. Short on purpose.
 
 ## The log
 
+## 2026-09-06 — Session 21: Piece 13, the backend passes all twenty
+
+**Asked for:** keep going.
+**Built:** the trainer's twenty Phase 1 tests as real pytest files in `tests/phase1/`, with the shared setup and the two fixtures the trainer forgot to write. **All twenty pass on the first full run.** The pass mark was fourteen.
+**Found:** the trainer's DB-02 test reads a row's id before the row is saved, so it would fail against any implementation. One `flush()` line fixes it, with the reason in a comment (T-36). Also pytest needed one line of config to find the `app` package from a subfolder (T-37).
+**Realised:** the backend is finished. Thirteen pieces, thirteen version tags, every trainer test green, and the extras from the review comments built in. The React front-end is the next iteration, and it is what actually gets demoed.
+**Next:** Piece 14, the React front-end. Plan written, built in four stages.
+
+---
+
 ## 2026-09-06 — Session 20: Piece 12, the server comes together
 
 **Asked for:** keep going.

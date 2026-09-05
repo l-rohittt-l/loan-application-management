@@ -152,8 +152,8 @@ FINAL_CHANCE/                     ← the git repository starts here
 | 10 | Eligibility check | Warns the form before submitting, all three loan types | **Done 2026-09-06** |
 | 11 | Activity log | One table, one write helper, one manager-only page. Records human or AI actor. | **Done 2026-09-06** |
 | 12 | Logging, tracing, and `main.py` | JSON logs with request ID and associate ID; timings on every request; the server itself | **Done 2026-09-06** |
-| **13** | **Tests** | All 20, in `tests/phase1/`, named as the trainer's file says | **Next** |
-| 14 | React front-end | The demo. Backend address from a setting, never hardcoded. | After the backend |
+| 13 | Tests | All 20, in `tests/phase1/`, named as the trainer's file says | **Done 2026-09-06 — 20 of 20 pass** |
+| **14** | **React front-end** | The demo. Backend address from a setting, never hardcoded. | **Next** |
 | 15 | Streamlit front-end | List, form, dashboard | After React |
 | 16 | Seed data and test report | Demo data, then the submission files | Last |
 
@@ -561,6 +561,71 @@ Reads the settings, configures logging and tracing, creates the tables on startu
 
 ---
 
+## Piece 14 — The React front-end
+
+**What it is:** the screens. This is what gets demoed, so it matters more than its marks. It talks to the backend over HTTP and holds nothing but the login token (Rule 13).
+
+**Tools:** React 18 with Vite (the build tool the program names), Axios for the HTTP calls, React Router for moving between pages. Plain JavaScript rather than TypeScript, and plain CSS rather than a component library, so every file is readable by someone new to the stack.
+
+**The one setting that matters:** the backend address comes from `VITE_API_BASE_URL` in a `.env` file, never typed into the code. That is what keeps hosting possible later (D-12).
+
+**Folder layout:**
+
+```
+frontend/
+├── .env.example            VITE_API_BASE_URL=http://localhost:8000
+├── index.html
+├── package.json
+└── src/
+    ├── main.jsx            starts React, wires the router
+    ├── App.jsx             the routes, and which role may see which
+    ├── api/
+    │   └── client.js       one Axios instance: base address, token on every call, logout on 401
+    ├── auth/
+    │   └── AuthContext.jsx who is logged in, their role, login and logout
+    ├── components/
+    │   ├── Layout.jsx      the header and navigation, links change with the role
+    │   ├── StatusBadge.jsx the five colours, exactly as the spec lists them
+    │   ├── Timeline.jsx    the vertical status history
+    │   ├── DocumentChecklist.jsx  required / uploaded / missing
+    │   ├── Spinner.jsx
+    │   └── ErrorBanner.jsx
+    ├── pages/
+    │   ├── Login.jsx
+    │   ├── StaffRegister.jsx        the trainer's register address
+    │   ├── ApplicantSignup.jsx      the customer signup
+    │   ├── ApplicationList.jsx      table, filters, status colours
+    │   ├── ApplicationDetail.jsx    everything about one application, update-status for staff
+    │   ├── NewApplication.jsx       the form, with the eligibility check before submit
+    │   ├── Dashboard.jsx            the counts
+    │   ├── Activity.jsx             manager only
+    │   └── MyProfile.jsx            the applicant's own details
+    └── styles.css
+```
+
+**Two doors, one app (D-07):** applicants and staff log in on the same page. After login the app looks at the role. An applicant lands on their own applications and can apply. Staff land on the full list and can review. A manager also gets the dashboard and the activity view. Links a role cannot use are not shown, and the pages behind them redirect if reached by typing the address.
+
+**What the trainer's user stories require, and where it lands:**
+
+| Story | Where |
+|---|---|
+| US-09 list with filters and exact status colours | `ApplicationList`, `StatusBadge` |
+| US-10 form with client-side checks, server errors shown, redirect to the new application | `NewApplication` |
+| US-11 detail with a vertical timeline, spinner, update-status button for officers | `ApplicationDetail`, `Timeline` |
+| Dashboard page | `Dashboard` |
+| Login and register storing the token in localStorage | `Login`, `StaffRegister`, `AuthContext` |
+| Axios with base URL and the token added automatically | `api/client.js` |
+
+**Beyond the spec, from the review comments:** the eligibility check runs before submit and shows the problems and suggestions (Koushik's "tell them what to adjust"); the document checklist shows what is still missing; the activity page for the manager.
+
+**Client-side checks mirror the server's rules** (Rule 6): same ranges, same formats, same messages where sensible. The server's check is still the real one; the client's is for a good error message before the round trip.
+
+**Built in stages, each committed:** 14a the shell (client, auth, layout, login, routes), 14b applications (list, detail, new with eligibility), 14c documents and status update, 14d dashboard, activity, profile, and polish.
+
+**Nothing open.** D-12 is honoured by the `.env` setting.
+
+---
+
 ## Done
 
 | # | Piece | Finished | Commit |
@@ -578,3 +643,4 @@ Reads the settings, configures logging and tracing, creates the tables on startu
 | 10 | Eligibility check | 2026-09-06 | `utils/finance.py` (EMI maths, UNIT-03, and an Indian rupee formatter), `utils/dates.py`, `services/eligibility_service.py`, `routers/eligibility.py`. Seven checks with plain-English messages and suggestions. Twenty-one smoke checks pass. Tag `v0.0.10`. |
 | 11 | Activity log, reading side | 2026-09-06 | `routers/activity.py` and two read functions in `activity_service.py`. Manager-only list with six filters, and a per-record history. Smoke test passes. Tag `v0.0.11`. |
 | 12 | Logging, tracing, `main.py` | 2026-09-06 | `utils/logging_config.py`, `utils/otel_config.py`, `middleware/logging_middleware.py`, `main.py`; `auth.validate` span in `dependencies.py`; `duration_ms` on the create and status-change logs. Smoke test reads the JSON log lines back and checks every required field. Tag `v0.0.12`. |
+| 13 | The trainer's 20 tests | 2026-09-06 | `pytest.ini`, `tests/conftest.py`, `tests/phase1/test_unit.py`, `test_api.py`, `test_db.py`. **All 20 pass** (27 runs with parametrised cases). One documented adaptation, T-36. Tag `v0.0.13`. |
