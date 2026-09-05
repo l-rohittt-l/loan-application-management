@@ -150,8 +150,8 @@ FINAL_CHANCE/                     ← the git repository starts here
 | 8 | Document endpoints | Record an uploaded document | **Done 2026-09-06** |
 | 9 | Dashboard endpoint | The counts, as one grouped query | **Done 2026-09-06** |
 | 10 | Eligibility check | Warns the form before submitting, all three loan types | **Done 2026-09-06** |
-| **11** | **Activity log** | One table, one write helper, one manager-only page. Records human or AI actor. | **Next** |
-| 12 | Logging and tracing | JSON logs with request ID and associate ID; timings on every request | Ready |
+| 11 | Activity log | One table, one write helper, one manager-only page. Records human or AI actor. | **Done 2026-09-06** |
+| **12** | **Logging, tracing, and `main.py`** | JSON logs with request ID and associate ID; timings on every request; the server itself | **Next** |
 | 13 | Tests | All 20, in `tests/phase1/`, named as the trainer's file says | Ready |
 | 14 | React front-end | The demo. Backend address from a setting, never hardcoded. | After the backend |
 | 15 | Streamlit front-end | List, form, dashboard | After React |
@@ -513,6 +513,34 @@ DB-01, DB-03, DB-04 pass with the models alone. DB-02 needs the models plus the 
 
 ---
 
+## Piece 12 — Logging, tracing, and the server itself
+
+**What it is:** three things the program grades that are invisible to a user, plus the file that turns all the pieces into one running server.
+
+**Files:** `utils/logging_config.py`, `utils/otel_config.py`, `middleware/logging_middleware.py`, and `main.py`.
+
+### Logging — `logging_config.py`
+
+Every log line becomes one line of JSON with the fields the observability guide demands: `timestamp`, `level`, `poc_id`, `phase`, `associate_id`, plus whatever the event adds. The three identity fields come from the settings file and are stamped on automatically, so no piece of code has to remember them. Within a request, the request id, method and path are attached to every line too, so you can pull one request's whole story out of the log with a single filter.
+
+### Tracing — `otel_config.py`
+
+OpenTelemetry "spans" are timed, labelled steps. The guide requires three for Phase 1: `http.request` (automatic, one per request), `db.query` (one per database statement), and `auth.validate` (one per token check). The database spans come from hooking SQLAlchemy's statement events, so every query anywhere in the app gets timed without touching the services. Spans print to the console when `OTEL_EXPORTER=console`, and are switched off with `none` so the tests stay quiet.
+
+### The request middleware — `logging_middleware.py`
+
+Runs around every request. Makes a request id (or reuses one the caller sent), logs `request_started`, times the work, logs `request_completed` with the status code and duration, and returns the id in an `X-Request-ID` header. If anything crashes, it logs the full stack trace with the request id and returns a clean 500 carrying that id, so a user can quote it and we can find the exact failure.
+
+### `main.py`
+
+Reads the settings, configures logging and tracing, creates the tables on startup, adds CORS for the Vite port (T-17), mounts every router at its `/api/v1/...` address, and adds `/health` for the reviewer's `curl`. This is the `app.main:app` the trainer's tests import and `uvicorn` runs.
+
+**Tests this piece satisfies:** none directly, but the API tests cannot run at all until `app.main` exists. Every "mandatory log event" in the Phase 1 spec is now produced.
+
+**Nothing open.**
+
+---
+
 ## Done
 
 | # | Piece | Finished | Commit |
@@ -528,3 +556,4 @@ DB-01, DB-03, DB-04 pass with the models alone. DB-02 needs the models plus the 
 | 8 | Document endpoints | 2026-09-06 | `services/document_service.py`, `routers/documents.py`, `DocumentUploadBody` and `DocumentListResponse` schemas. Add, list with a required/missing checklist, verify. Smoke test passes. Tag `v0.0.8`. |
 | 9 | Dashboard | 2026-09-06 | `services/dashboard_service.py`, `routers/dashboard.py`, `schemas/dashboard.py`. Three grouped queries, every key present at zero, two extra numbers. API-08 passes; answers in ~10 ms. Tag `v0.0.9`. |
 | 10 | Eligibility check | 2026-09-06 | `utils/finance.py` (EMI maths, UNIT-03, and an Indian rupee formatter), `utils/dates.py`, `services/eligibility_service.py`, `routers/eligibility.py`. Seven checks with plain-English messages and suggestions. Twenty-one smoke checks pass. Tag `v0.0.10`. |
+| 11 | Activity log, reading side | 2026-09-06 | `routers/activity.py` and two read functions in `activity_service.py`. Manager-only list with six filters, and a per-record history. Smoke test passes. Tag `v0.0.11`. |

@@ -49,6 +49,58 @@ def record(
     return row
 
 
+def list_activity(
+    db: Session,
+    *,
+    page: int = 1,
+    limit: int = 50,
+    actor_id: str | None = None,
+    actor_type: ActorType | None = None,
+    action: str | None = None,
+    entity_type: str | None = None,
+    entity_id: int | None = None,
+    from_date=None,
+    to_date=None,
+) -> tuple[list[ActivityLog], int]:
+    """A page of events, newest first, with optional filters combined with AND."""
+    from datetime import datetime, time
+
+    query = db.query(ActivityLog)
+    if actor_id:
+        query = query.filter(ActivityLog.actor_id == actor_id.lower())
+    if actor_type:
+        query = query.filter(ActivityLog.actor_type == actor_type)
+    if action:
+        query = query.filter(ActivityLog.action == action)
+    if entity_type:
+        query = query.filter(ActivityLog.entity_type == entity_type)
+    if entity_id is not None:
+        query = query.filter(ActivityLog.entity_id == entity_id)
+    if from_date:
+        query = query.filter(ActivityLog.created_at >= datetime.combine(from_date, time.min))
+    if to_date:
+        query = query.filter(ActivityLog.created_at <= datetime.combine(to_date, time.max))
+
+    total = query.count()
+    items = (
+        query.order_by(ActivityLog.created_at.desc(), ActivityLog.id.desc())
+        .offset((page - 1) * limit)
+        .limit(limit)
+        .all()
+    )
+    return items, total
+
+
+def history_for(db: Session, entity_type: str, entity_id: int) -> list[ActivityLog]:
+    """Everything that ever happened to one record, oldest first."""
+    return (
+        db.query(ActivityLog)
+        .filter(ActivityLog.entity_type == entity_type, ActivityLog.entity_id == entity_id)
+        .order_by(ActivityLog.created_at, ActivityLog.id)
+        .all()
+    )
+
+
 def request_meta(request: Request | None) -> dict:
     """
     Pull the request id and caller's IP off a request, for `record(...)`.

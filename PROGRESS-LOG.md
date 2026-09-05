@@ -38,6 +38,16 @@ Newest entries at the top. Short on purpose.
 
 ## The log
 
+## 2026-09-06 — Session 19: Piece 11, the manager's activity view
+
+**Asked for:** keep going.
+**Built:** the reading side of the activity log. A manager-only list with filters for who, what, human-or-AI, which record, and a date range, plus a per-record history for the application page. Reading the log never writes to it.
+**Found:** nothing new.
+**Realised:** nothing new.
+**Next:** Piece 12, logging, tracing, and `main.py`. After this the API runs as one server.
+
+---
+
 ## 2026-09-06 — Session 18: Piece 10, the eligibility check
 
 **Asked for:** keep going.
