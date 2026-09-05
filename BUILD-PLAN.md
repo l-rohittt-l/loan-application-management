@@ -153,8 +153,8 @@ FINAL_CHANCE/                     ← the git repository starts here
 | 11 | Activity log | One table, one write helper, one manager-only page. Records human or AI actor. | **Done 2026-09-06** |
 | 12 | Logging, tracing, and `main.py` | JSON logs with request ID and associate ID; timings on every request; the server itself | **Done 2026-09-06** |
 | 13 | Tests | All 20, in `tests/phase1/`, named as the trainer's file says | **Done 2026-09-06 — 20 of 20 pass** |
-| **14** | **React front-end** | The demo. Backend address from a setting, never hardcoded. | **Next** |
-| 15 | Streamlit front-end | List, form, dashboard | After React |
+| 14 | React front-end | The demo. Backend address from a setting, never hardcoded. | **Done 2026-09-06** |
+| **15** | **Streamlit front-end** | List, form, dashboard | **Next** |
 | 16 | Seed data and test report | Demo data, then the submission files | Last |
 
 ---
@@ -626,6 +626,22 @@ frontend/
 
 ---
 
+## Piece 15 — The Streamlit front-end
+
+**What it is:** the second front-end the program requires (user story 12). The minimum is a list with filters, a submission form and a dashboard, all talking to the same backend with the token in the header. Streamlit is a Python library that turns a script into a web page, so this is one file.
+
+**Why it is worth doing properly, not just ticking the box:** the Phase 2, 3 and 4 test specs check Streamlit behaviour (`st.session_state`, port 8501). This file becomes the base those chat screens are built on.
+
+**File:** `frontend-streamlit/app.py`. Runs with `streamlit run frontend-streamlit/app.py` from the project root, on port 8501. The backend address comes from an environment variable with a sensible default, same rule as React.
+
+**What it does:** a login box in the sidebar (token kept in `st.session_state`, which lives on the server side of Streamlit, not in the browser). Then three tabs: Applications (filters, table, status colours), New application (the form, with the eligibility check), Dashboard (the numbers). Staff and applicants see the same tabs; the backend already limits what each can see.
+
+**Package:** `streamlit==1.36.0` from the trainer's list, added to `requirements.txt` and installed into the same virtual environment.
+
+**Nothing open.**
+
+---
+
 ## Done
 
 | # | Piece | Finished | Commit |
@@ -644,3 +660,4 @@ frontend/
 | 11 | Activity log, reading side | 2026-09-06 | `routers/activity.py` and two read functions in `activity_service.py`. Manager-only list with six filters, and a per-record history. Smoke test passes. Tag `v0.0.11`. |
 | 12 | Logging, tracing, `main.py` | 2026-09-06 | `utils/logging_config.py`, `utils/otel_config.py`, `middleware/logging_middleware.py`, `main.py`; `auth.validate` span in `dependencies.py`; `duration_ms` on the create and status-change logs. Smoke test reads the JSON log lines back and checks every required field. Tag `v0.0.12`. |
 | 13 | The trainer's 20 tests | 2026-09-06 | `pytest.ini`, `tests/conftest.py`, `tests/phase1/test_unit.py`, `test_api.py`, `test_db.py`. **All 20 pass** (27 runs with parametrised cases). One documented adaptation, T-36. Tag `v0.0.13`. |
+| 14 | React front-end | 2026-09-06 | `frontend/` on Vite with React 18, Axios and React Router. Nine pages, six components, the API client with token and 401 handling, client-side checks mirroring the server. Builds clean. Added `GET /applicants/me` to the backend so an applicant can load their own profile. Tag `v0.0.14`. |

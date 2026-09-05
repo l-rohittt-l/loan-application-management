@@ -38,6 +38,16 @@ Newest entries at the top. Short on purpose.
 
 ## The log
 
+## 2026-09-06 — Session 22: Piece 14, the React front-end
+
+**Asked for:** keep going.
+**Built:** the whole React app. Login, staff registration, customer signup, the applications table with filters and the trainer's exact status colours, the detail page with the vertical timeline, the document checklist with verify buttons for staff, the update-status control that only offers moves the rules allow, the new-application form that runs the eligibility check before submitting and offers the suggested amount or tenure with one click, the dashboard, the manager's activity page, and the applicant's profile page. Builds clean. Also a seed script that creates a manager, an officer, six customers and eight applications across every status.
+**Found:** the backend had no way for an applicant to fetch their own profile, so a small `GET /applicants/me` was added. React 19 came with the scaffold; pinned back to 18 as the program names.
+**Realised:** the eligibility card on the form is the piece Koushik asked for in the review: it tells the customer what to change, and one click applies the suggestion.
+**Next:** Piece 15, the Streamlit front-end. Plan written.
+
+---
+
 ## 2026-09-06 — Session 21: Piece 13, the backend passes all twenty
 
 **Asked for:** keep going.

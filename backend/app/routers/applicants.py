@@ -52,6 +52,19 @@ def list_applicants(
     return ApplicantListResponse(items=items, total_count=total, page=page, limit=limit)
 
 
+@router.get("/me", response_model=ApplicantResponse)
+def my_profile(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """The logged-in applicant's own borrower profile. Declared before /{applicant_id} so 'me' is not read as an id."""
+    applicant = applicant_service.get_own_profile(db, user)
+    if applicant is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="No borrower profile is linked to this login")
+    return applicant
+
+
 @router.get("/{applicant_id}", response_model=ApplicantResponse)
 def get_applicant(
     applicant_id: int,
