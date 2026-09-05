@@ -41,6 +41,20 @@ def check_password(value: str) -> str:
     return value
 
 
+# Manual Section 12: documents must be PDF, JPG or PNG.
+_ALLOWED_EXTENSIONS = (".pdf", ".jpg", ".jpeg", ".png")
+
+
+def check_file_name(value: str) -> str:
+    value = value.strip()
+    if not value.lower().endswith(_ALLOWED_EXTENSIONS):
+        raise ValueError("file_name must end in .pdf, .jpg, .jpeg or .png")
+    # Guard against path tricks like "../../etc/passwd".
+    if "/" in value or "\\" in value:
+        raise ValueError("file_name must not contain folder separators")
+    return value
+
+
 def check_date_of_birth(value: date | None) -> date | None:
     if value is None:
         return None

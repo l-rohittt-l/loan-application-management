@@ -100,6 +100,10 @@ No decision needed. These break something quietly if forgotten.
 
 **T-32 · Phase 5 reads applicant facts that no table stores.** Employment length and existing loan payments. Raised as D-16.
 
+### PowerShell
+
+**T-34 · No double quotes inside git commit messages.** Windows PowerShell 5.1 mangles a double quote inside an argument to a native program like git, splitting the message into several arguments. The commit fails with a confusing "pathspec did not match" error, and any tag created in the same command lands on the wrong commit. Happened on Piece 7 and needed a tag deleted from GitHub. Rule: commit messages use single quotes or no quotes at all.
+
 ### Python itself
 
 **T-33 · In Python 3.11, `str()` of a string-enum is not its value.** `str(ApplicationStatus.submitted)` gives `"ApplicationStatus.submitted"`, not `"submitted"`. The trainer's tests hand the rules enum members; the API hands them strings. Any helper that compares them must use `.value` when it's there. Caught while planning Piece 7; the rules file was using `str()` and would have failed UNIT-05. Fixed with a tiny `_v()` helper.

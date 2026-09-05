@@ -14,7 +14,9 @@ from app.schemas.application import (
     ApplicationResponse, ApplicationSummary, ApplicationListResponse,
     EligibilityCheckRequest, EligibilityCheckResponse,
 )
-from app.schemas.document import CreateDocumentSchema, DocumentResponse
+from app.schemas.document import (
+    CreateDocumentSchema, DocumentUploadBody, DocumentResponse, DocumentListResponse,
+)
 from app.schemas.activity import ActivityLogResponse
 
 __all__ = [
@@ -23,6 +25,6 @@ __all__ = [
     "CreateApplicationSchema", "StatusUpdateRequest", "StatusHistoryResponse",
     "ApplicationResponse", "ApplicationSummary", "ApplicationListResponse",
     "EligibilityCheckRequest", "EligibilityCheckResponse",
-    "CreateDocumentSchema", "DocumentResponse",
+    "CreateDocumentSchema", "DocumentUploadBody", "DocumentResponse", "DocumentListResponse",
     "ActivityLogResponse",
 ]

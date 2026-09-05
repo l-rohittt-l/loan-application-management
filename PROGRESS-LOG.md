@@ -38,6 +38,16 @@ Newest entries at the top. Short on purpose.
 
 ## The log
 
+## 2026-09-06 — Session 16: Piece 8, documents
+
+**Asked for:** keep going.
+**Built:** adding a document to an application, listing them with a checklist of what the loan type still needs, and letting an officer mark one as verified. Same type twice is allowed, as the user story says. Applicants can only touch their own.
+**Found:** a PowerShell quirk cost a few minutes: a double quote inside a commit message splits it into pieces, the commit fails, and a tag made in the same command lands on the wrong commit. Had to delete a tag from GitHub. Logged as T-34; commit messages now avoid double quotes.
+**Realised:** the required-and-missing checklist in the document list is the small thing that makes Phase 5's compliance agent trivial later. It already knows what is missing.
+**Next:** Piece 9, the dashboard. Plan written.
+
+---
+
 ## 2026-09-06 — Session 15: Piece 7, the application endpoints
 
 **Asked for:** keep going.

@@ -147,8 +147,8 @@ FINAL_CHANCE/                     ← the git repository starts here
 | 5 | Auth | Staff register, applicant signup, login, token, roles (Option A) | **Done 2026-09-06** |
 | 6 | Applicant endpoints | Create and view a borrower | **Done 2026-09-06** |
 | 7 | Application endpoints | Create, view, list, change status. History and documents loaded in one query. | **Done 2026-09-06** |
-| **8** | **Document endpoints** | Record an uploaded document | **Next** |
-| 9 | Dashboard endpoint | The counts, as one grouped query | Ready |
+| 8 | Document endpoints | Record an uploaded document | **Done 2026-09-06** |
+| **9** | **Dashboard endpoint** | The counts, as one grouped query | **Next** |
 | 10 | Eligibility check | Warns the form before submitting, all three loan types | Waiting on D-14 |
 | 11 | Activity log | One table, one write helper, one manager-only page. Records human or AI actor. | Ready |
 | 12 | Logging and tracing | JSON logs with request ID and associate ID; timings on every request | Ready |
@@ -438,6 +438,26 @@ DB-01, DB-03, DB-04 pass with the models alone. DB-02 needs the models plus the 
 
 ---
 
+## Piece 9 — Dashboard
+
+**What it is:** one address that gives the manager the numbers: how many applications in total, how many at each status, how many of each loan type, and the total amount requested. The trainer's test API-08 checks the first three keys.
+
+**Files:** `services/dashboard_service.py`, `routers/dashboard.py`, `schemas/dashboard.py`.
+
+**Address:** `GET /api/v1/dashboard/summary`, staff only. Answers 200 always, with zeros when the database is empty (the spec says an empty database is not an error).
+
+**Speed:** three small grouped queries, not a loop over every application. The database counts rows by status and by loan type itself and hands back the totals. That is what keeps this under the 500ms target no matter how many applications there are.
+
+**A cautious upgrade:** every status and every loan type appears in the answer even when its count is zero, so the front-end never has to guess which keys exist. Two extra numbers that cost nothing: `pending_review` (submitted plus under review, the officer's to-do pile) and `approved_amount` (the rupees waiting to be paid out).
+
+**Recorded in the activity log:** `dashboard_viewed`.
+
+**Tests this piece satisfies:** API-08.
+
+**Nothing open.**
+
+---
+
 ## Done
 
 | # | Piece | Finished | Commit |
@@ -450,3 +470,4 @@ DB-01, DB-03, DB-04 pass with the models alone. DB-02 needs the models plus the 
 | 5 | Auth | 2026-09-06 | `utils/auth.py`, `dependencies.py`, `services/auth_service.py`, `services/activity_service.py`, `services/errors.py`, `routers/auth.py`. Smoke test covers the trainer's fixture, 401-not-403, role gate, applicant signup creating two rows, and five activity-log rows. Tag `v0.0.5`. |
 | 6 | Applicant endpoints | 2026-09-06 | `services/applicant_service.py`, `routers/applicants.py`. Smoke test covers UNIT-01, the `test_applicant` fixture, and owner scoping (an applicant is blocked from other profiles, the list, and creating). Tag `v0.0.6`. |
 | 7 | Application endpoints | 2026-09-06 | `services/application_service.py`, `routers/applications.py`. Smoke test covers UNIT-05, UNIT-06, API-01 to API-07, per-type limits, the 400 on backward moves, manager-only disbursement, and owner scoping. Tag `v0.0.7`. |
+| 8 | Document endpoints | 2026-09-06 | `services/document_service.py`, `routers/documents.py`, `DocumentUploadBody` and `DocumentListResponse` schemas. Add, list with a required/missing checklist, verify. Smoke test passes. Tag `v0.0.8`. |

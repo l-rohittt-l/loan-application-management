@@ -9,27 +9,29 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models.document import DocumentType
-
-# Manual Section 12: documents must be PDF, JPG or PNG.
-_ALLOWED_EXTENSIONS = (".pdf", ".jpg", ".jpeg", ".png")
+from app.schemas.common import check_file_name
 
 
 class CreateDocumentSchema(BaseModel):
+    """What the service accepts. Test UNIT-07 builds this directly, with application_id."""
     application_id: int = Field(..., gt=0)
-    # One of the six types. Test UNIT-07 sends "passport_copy" and expects a rejection.
+    # One of the six types. UNIT-07 sends "passport_copy" and expects a rejection.
     doc_type: DocumentType
     file_name: str = Field(..., min_length=1, max_length=255)
 
-    @field_validator("file_name")
-    @classmethod
-    def check_file_name(cls, value: str) -> str:
-        value = value.strip()
-        if not value.lower().endswith(_ALLOWED_EXTENSIONS):
-            raise ValueError("file_name must end in .pdf, .jpg, .jpeg or .png")
-        # Guard against path tricks like "../../etc/passwd".
-        if "/" in value or "\\" in value:
-            raise ValueError("file_name must not contain folder separators")
-        return value
+    _check_file_name = field_validator("file_name")(check_file_name)
+
+
+class DocumentUploadBody(BaseModel):
+    """
+    What the endpoint accepts. The application id comes from the address, so
+    the body is just the type and the file name. The router turns this plus
+    the address into a CreateDocumentSchema for the service.
+    """
+    doc_type: DocumentType
+    file_name: str = Field(..., min_length=1, max_length=255)
+
+    _check_file_name = field_validator("file_name")(check_file_name)
 
 
 class DocumentResponse(BaseModel):
@@ -41,3 +43,10 @@ class DocumentResponse(BaseModel):
     file_name: str
     uploaded_at: datetime | None = None
     verified: bool
+
+
+class DocumentListResponse(BaseModel):
+    """The documents on an application, plus a checklist for the screen."""
+    items: list[DocumentResponse]
+    required: list[str]     # what this loan type needs
+    missing: list[str]      # what has not been uploaded yet
