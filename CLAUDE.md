@@ -179,6 +179,7 @@ Rohit wants to see the small details and suggest changes, not just approve finis
 - Write the plan for the current piece into `BUILD-PLAN.md` before writing any code.
 - Ask him for input on anything with a real choice in it.
 - Build only after he has seen the plan.
+- **Standing instruction from 2026-09-06:** Rohit said "keep going". He is still learning the tech and cannot yet judge plans piece by piece. So: write the plan, then build without waiting for a go, and tell him what was built in plain words. Stop only when a piece needs a decision from him. He will read the plans and catch up at his own pace.
 
 ## Rule 10 — Catch ideas for later in `FUTURE-UPGRADES.md`
 

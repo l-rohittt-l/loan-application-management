@@ -38,6 +38,16 @@ Newest entries at the top. Short on purpose.
 
 ## The log
 
+## 2026-09-06 — Session 12: Piece 4, the input-checking layer
+
+**Asked for:** keep going.
+**Built:** the schemas, six files under `app/schemas/`. Every field that accepts user input is now checked: name shape, Indian mobile format, password strength, email, credit score range, income, date of birth not in the future, file names limited to PDF/JPG/PNG with no folder tricks, and the trainer's amount and tenure bounds. A smoke test mirroring the trainer's UNIT-02, 04, 07 and 08 passes, plus eight of our own stricter checks.
+**Found:** nothing new.
+**Realised:** the per-loan-type limits belong in the service layer, not the schema, so the trainer's UNIT-04 keeps passing exactly as written and the eligibility check can explain *why* something is over the limit.
+**Next:** Piece 5, auth. Plan written.
+
+---
+
 ## 2026-09-06 — Session 11: Piece 3, the six tables
 
 **Asked for:** keep going without waiting for approval on each piece, since Rohit needs time to learn the tech before he can suggest changes. Also: can every push carry a version number?

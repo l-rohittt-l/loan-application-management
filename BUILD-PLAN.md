@@ -143,8 +143,8 @@ FINAL_CHANCE/                     ← the git repository starts here
 | 1 | Project skeleton | Folders, virtual environment, package list, settings file | **Done 2026-09-06** |
 | 2 | Domain rules | Every loan rule in one file | **Done 2026-09-06** |
 | 3 | Database + 6 models | Six tables, with indexes on the filtered columns | **Done 2026-09-06** |
-| **4** | **Schemas** | Input checking on every field, not just the ones the trainer names | **Next** |
-| 5 | Auth | Staff register, applicant signup, login, token, roles (Option A) | Ready |
+| 4 | Schemas | Input checking on every field, not just the ones the trainer names | **Done 2026-09-06** |
+| **5** | **Auth** | Staff register, applicant signup, login, token, roles (Option A) | **Next** |
 | 6 | Applicant endpoints | Create and view a borrower | Ready |
 | 7 | Application endpoints | Create, view, list, change status. History and documents loaded in one query. | Ready |
 | 8 | Document endpoints | Record an uploaded document | Ready |
@@ -320,6 +320,43 @@ DB-01, DB-03, DB-04 pass with the models alone. DB-02 needs the models plus the 
 
 ---
 
+## Piece 5 — Auth: who you are, and what you're allowed to do
+
+**What it is:** the login system. Register, sign up, log in, get a token, and a small piece that every protected endpoint uses to say "who is calling, and are they allowed?"
+
+**How a token works, in plain words:** when you log in with the right password, the server hands you a long string of text called a JWT. It contains your email and role, signed with the server's secret so it cannot be forged. You send it back with every later request in a header, and the server reads it to know who you are without asking for the password again. It expires after 24 hours.
+
+**Files:**
+
+| File | Holds |
+|---|---|
+| `utils/auth.py` | hash a password, check a password, create a token, read a token |
+| `dependencies.py` | `get_current_user` (reads the token, loads the user, or answers 401) and `require_role(...)` for endpoints only some roles may call |
+| `services/auth_service.py` | the logic: register staff, sign up an applicant (creates both rows, T-23), check a login |
+| `services/activity_service.py` | one small function, `record(...)`, that writes an activity-log row. Created here because logins are the first thing worth recording; every later piece reuses it. |
+| `routers/auth.py` | the four addresses below |
+
+**Addresses:**
+
+| Method | Address | What it does | Answers |
+|---|---|---|---|
+| POST | `/api/v1/auth/register` | Staff account. Defaults to loan officer (D-07). The trainer's test uses this. | 201, 409 if email exists, 422 if weak password |
+| POST | `/api/v1/auth/register-applicant` | Customer signup. One request creates the login and the borrower profile. | 201, 409 |
+| POST | `/api/v1/auth/login` | JSON body in, token out (T-05) | 200, 401 without saying which field was wrong |
+| GET | `/api/v1/auth/me` | Who am I, from the token | 200, 401 |
+
+**Two traps handled here:**
+- T-01: the built-in bearer helper answers 403 when the header is missing. We turn its automatic error off and raise 401 ourselves, which is what test API-06 expects.
+- Login failures say "invalid email or password", never which one, so nobody can use the login page to discover which emails exist.
+
+**What gets recorded in the activity log:** staff registered, applicant signed up, login succeeded, login failed (with the email tried, so a manager can spot someone guessing passwords).
+
+**Tests this piece satisfies:** the `auth_token` fixture every API test depends on, and API-06.
+
+**Nothing open.**
+
+---
+
 ## Done
 
 | # | Piece | Finished | Commit |
@@ -328,3 +365,4 @@ DB-01, DB-03, DB-04 pass with the models alone. DB-02 needs the models plus the 
 | 1 | Project skeleton | 2026-09-06 | `backend/` with `app/` package, venv on Python 3.11.9, `requirements.txt` at trainer's versions plus two fixes (T-30, T-31), `.env` with a generated secret, `.env.example` |
 | 2 | Domain rules | 2026-09-06 | `app/domain/rules.py`: every rule as plain constants and six helpers. No imports from the app. Sanity checks pass. |
 | 3 | Database + 6 models | 2026-09-06 | `config.py`, `database.py`, and `models/` with the six tables. Smoke test mirrors DB-01 to DB-04 and passes. Tag `v0.0.3`. |
+| 4 | Schemas | 2026-09-06 | `schemas/` with six files. Every input field checked. Smoke test mirrors UNIT-02, 04, 07, 08 plus eight stricter checks; all pass. Tag `v0.0.4`. |
