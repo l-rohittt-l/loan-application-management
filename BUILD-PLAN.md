@@ -148,8 +148,8 @@ FINAL_CHANCE/                     ← the git repository starts here
 | 6 | Applicant endpoints | Create and view a borrower | **Done 2026-09-06** |
 | 7 | Application endpoints | Create, view, list, change status. History and documents loaded in one query. | **Done 2026-09-06** |
 | 8 | Document endpoints | Record an uploaded document | **Done 2026-09-06** |
-| **9** | **Dashboard endpoint** | The counts, as one grouped query | **Next** |
-| 10 | Eligibility check | Warns the form before submitting, all three loan types | Waiting on D-14 |
+| 9 | Dashboard endpoint | The counts, as one grouped query | **Done 2026-09-06** |
+| **10** | **Eligibility check** | Warns the form before submitting, all three loan types | **Next** |
 | 11 | Activity log | One table, one write helper, one manager-only page. Records human or AI actor. | Ready |
 | 12 | Logging and tracing | JSON logs with request ID and associate ID; timings on every request | Ready |
 | 13 | Tests | All 20, in `tests/phase1/`, named as the trainer's file says | Ready |
@@ -458,6 +458,36 @@ DB-01, DB-03, DB-04 pass with the models alone. DB-02 needs the models plus the 
 
 ---
 
+## Piece 10 — The eligibility check
+
+**What it is:** the answer to "would this loan be allowed?", asked by the form *before* the customer submits. It comes back with a plain-English list of problems and, where it can, a suggested amount or tenure that would pass. This is Koushik's "stop users applying if they don't meet the criteria and tell them what to adjust", done as advice rather than a hard block, so the trainer's API-03 keeps passing (D-01).
+
+**Files:** `utils/finance.py` (the EMI maths, including the function UNIT-03 calls by name), `utils/dates.py` (age from a date of birth), `services/eligibility_service.py`, `routers/eligibility.py`.
+
+**Address:** `POST /api/v1/applications/check-eligibility`, anyone logged in; an applicant may only check for themselves. Body: applicant id, loan type, amount, tenure. Answers 200 always, with `eligible` true or false.
+
+**The checks, in order, every one sourced from the rules file:**
+
+| Check | Rule | If it fails |
+|---|---|---|
+| Tenure | inside the per-type range (D-02) | says the allowed range |
+| Amount | under the per-type cap (D-03) | says the cap |
+| Income | at or above the minimum for the type | says the minimum |
+| Credit score | at or above the minimum for the type; personal loans need a score at all | says the minimum |
+| Employment | not unemployed; enough time in the job if we know it | explains |
+| Age | inside the range, if we know the date of birth; a home loan must end before 70 | suggests the longest tenure that fits |
+| Affordability | this EMI plus existing EMIs at most 50% of monthly income (D-14), at the default 12% rate | suggests the largest amount that fits at this tenure, and the shortest tenure that fits at this amount |
+
+**Why the EMI formula lives in `utils/finance.py`:** the trainer's UNIT-03 imports `app.utils.finance.calculate_emi(principal, annual_rate, tenure_months)` by that exact path and expects about ₹16,607 for ₹5,00,000 at 12% over 36 months.
+
+**Recorded in the activity log:** `eligibility_checked`, with the outcome.
+
+**Tests this piece satisfies:** UNIT-03.
+
+**Nothing open.**
+
+---
+
 ## Done
 
 | # | Piece | Finished | Commit |
@@ -471,3 +501,4 @@ DB-01, DB-03, DB-04 pass with the models alone. DB-02 needs the models plus the 
 | 6 | Applicant endpoints | 2026-09-06 | `services/applicant_service.py`, `routers/applicants.py`. Smoke test covers UNIT-01, the `test_applicant` fixture, and owner scoping (an applicant is blocked from other profiles, the list, and creating). Tag `v0.0.6`. |
 | 7 | Application endpoints | 2026-09-06 | `services/application_service.py`, `routers/applications.py`. Smoke test covers UNIT-05, UNIT-06, API-01 to API-07, per-type limits, the 400 on backward moves, manager-only disbursement, and owner scoping. Tag `v0.0.7`. |
 | 8 | Document endpoints | 2026-09-06 | `services/document_service.py`, `routers/documents.py`, `DocumentUploadBody` and `DocumentListResponse` schemas. Add, list with a required/missing checklist, verify. Smoke test passes. Tag `v0.0.8`. |
+| 9 | Dashboard | 2026-09-06 | `services/dashboard_service.py`, `routers/dashboard.py`, `schemas/dashboard.py`. Three grouped queries, every key present at zero, two extra numbers. API-08 passes; answers in ~10 ms. Tag `v0.0.9`. |

@@ -38,6 +38,16 @@ Newest entries at the top. Short on purpose.
 
 ## The log
 
+## 2026-09-06 — Session 17: Piece 9, the dashboard
+
+**Asked for:** keep going.
+**Built:** the dashboard summary. Three grouped queries give the counts by status and loan type and the total amount, with every key present even at zero, plus two extras: the officer's pending pile and the approved-but-unpaid amount. The trainer's API-08 passes, and it answers in about 10 ms.
+**Found:** nothing new.
+**Realised:** nothing new.
+**Next:** Piece 10, the eligibility check. Plan written.
+
+---
+
 ## 2026-09-06 — Session 16: Piece 8, documents
 
 **Asked for:** keep going.
