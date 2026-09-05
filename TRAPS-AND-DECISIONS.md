@@ -96,6 +96,12 @@ No decision needed. These break something quietly if forgotten.
 
 **T-29 · The project lives inside OneDrive.** Git and OneDrive can fight: OneDrive syncs the hidden `.git` folder while git is writing to it, and that occasionally corrupts the repository. For a solo project with GitHub as the backup, the risk is small and the fix is to re-clone. If it ever misbehaves, the cure is to either move the project out of OneDrive or tell OneDrive to skip this folder.
 
+### Packages
+
+**T-30 · passlib 1.7.4 breaks with bcrypt 4.1 or newer.** The trainer pins passlib but not bcrypt. Newer bcrypt removed something passlib reads at startup, so password hashing throws an error. Fix: pin `bcrypt==4.0.1` in `requirements.txt`. Done.
+
+**T-31 · `EmailStr` needs an extra package.** Pydantic's email check, which test UNIT-02 relies on, needs `email-validator` installed separately. The trainer's list leaves it out. Added.
+
 ### Security
 
 **T-11 · Never commit the environment file.** `.env` holds the Gemini key and the JWT signing secret. Commit `.env.example` with blank values instead.

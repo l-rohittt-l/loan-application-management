@@ -140,8 +140,8 @@ FINAL_CHANCE/                     ← the git repository starts here
 | # | Piece | What it is | Status |
 |---|---|---|---|
 | 0 | Tools on the laptop | Install git, Python, Node. Create the GitHub repository. | **Done 2026-09-06** |
-| **1** | **Project skeleton** | Folders, virtual environment, package list, settings file | **Next** |
-| 2 | Domain rules | Every loan rule in one file | Waiting on D-14 |
+| 1 | Project skeleton | Folders, virtual environment, package list, settings file | **Done 2026-09-06** |
+| **2** | **Domain rules** | Every loan rule in one file | **Next** |
 | 3 | Database + 6 models | Six tables, with indexes on the filtered columns | Ready |
 | 4 | Schemas | Input checking on every field, not just the ones the trainer names | Ready |
 | 5 | Auth | Staff register, applicant signup, login, token, roles (Option A) | Ready |
@@ -218,3 +218,4 @@ Runs as soon as Piece 0 is done.
 | # | Piece | Finished | Commit |
 |---|---|---|---|
 | 0 | Tools on the laptop | 2026-09-06 | `02fcf34` first commit; repo at `github.com/l-rohittt-l/loan-application-management` (private) |
+| 1 | Project skeleton | 2026-09-06 | `backend/` with `app/` package, venv on Python 3.11.9, `requirements.txt` at trainer's versions plus two fixes (T-30, T-31), `.env` with a generated secret, `.env.example` |

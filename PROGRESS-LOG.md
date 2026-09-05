@@ -38,6 +38,16 @@ Newest entries at the top. Short on purpose.
 
 ## The log
 
+## 2026-09-06 — Session 9: Piece 1, the skeleton
+
+**Asked for:** go ahead with Piece 1, and only raise parked questions when a piece actually needs them.
+**Built:** the `backend/` folder with the `app/` package, a virtual environment on Python 3.11.9, `requirements.txt` at the trainer's versions, `.env` with a real generated secret, and `.env.example` for GitHub. All packages installed and importing.
+**Found:** two gaps in the trainer's package list. `passlib` breaks with newer `bcrypt`, so bcrypt is pinned to 4.0.1. And Pydantic's email check needs `email-validator`, which the trainer never lists but test UNIT-02 depends on. Both in the traps file.
+**Realised:** nothing new. This piece was groundwork.
+**Next:** Piece 2, the domain rules file. Every loan rule in one place.
+
+---
+
 ## 2026-09-05 — Session 8: Slowing down to one thing at a time
 
 **Asked for:** stop doing ten things per reply. One problem, one answer, then move on. Also a notes file for domain facts worth re-reading.

@@ -216,6 +216,7 @@ Rohit cannot keep up with ten things in one message, and he will forget what he 
 - Bookkeeping in the files (log, traps, future upgrades, learning notes) happens quietly in the same reply. Do not narrate it beyond one line.
 - Before moving to the next step, confirm the current one is done and ask if he has questions.
 - **Never skip asking him something because it would make the reply longer.** Ask it in the next reply instead.
+- **Parked questions get raised when the piece in front of us needs them, not before.** Draft saving gets designed when we reach it. Hosting gets decided before the demo. Do not bring them up early just because they are open.
 
 ## Rule 15 — Keep a learning-notes file for him
 

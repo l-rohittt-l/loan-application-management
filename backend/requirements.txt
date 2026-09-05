@@ -1,0 +1,39 @@
+# Phase 1 packages. Versions match TECH_STACK_REFERENCE.md unless a comment says why not.
+# Phase 2+ packages get added when those phases start.
+
+# Web framework
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+
+# Database
+sqlalchemy==2.0.30
+alembic==1.13.1
+
+# Validation
+pydantic==2.7.1
+pydantic-settings==2.3.0
+email-validator==2.1.1        # needed for EmailStr; test UNIT-02 checks email format
+python-multipart==0.0.9
+
+# Authentication
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+bcrypt==4.0.1                 # pinned: passlib 1.7.4 breaks with bcrypt 4.1+ (see TRAPS T-30)
+
+# Logging
+structlog==24.1.0
+
+# OpenTelemetry
+opentelemetry-sdk==1.25.0
+opentelemetry-instrumentation-fastapi==0.46b0
+opentelemetry-exporter-otlp==1.25.0
+
+# Testing
+pytest==8.2.2
+pytest-asyncio==0.23.7
+httpx==0.27.0
+pytest-cov==5.0.0
+
+# Utilities
+python-dotenv==1.0.1
+requests==2.32.3
