@@ -38,6 +38,16 @@ Newest entries at the top. Short on purpose.
 
 ## The log
 
+## 2026-09-06 — Session 18: Piece 10, the eligibility check
+
+**Asked for:** keep going.
+**Built:** the "would this be allowed?" check the form calls before submitting. Seven checks from the rules file, each with a plain-English message: tenure range, amount cap, minimum income, credit score, employment, age including the "home loan must end before 70" rule, and affordability at 50% of income after existing EMIs. Where it can, it suggests an amount or tenure that would pass. Advisory only; the trainer's API-03 home loan is flagged but still accepted. Also the EMI maths the trainer's UNIT-03 calls by name.
+**Found:** Python formats 25 lakh as ₹2,500,000. Added an Indian formatter so every message reads ₹25,00,000, and a note in the learning file.
+**Realised:** with the date of birth and job-length fields added earlier, the age and employment checks were one line each. Adding the columns early paid off immediately.
+**Next:** Piece 11, the manager's view of the activity log. Plan written.
+
+---
+
 ## 2026-09-06 — Session 17: Piece 9, the dashboard
 
 **Asked for:** keep going.

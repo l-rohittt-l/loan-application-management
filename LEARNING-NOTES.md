@@ -34,6 +34,16 @@ Sources: [eligibilitytools.in](https://eligibilitytools.in/guides/home-loan-elig
 
 ---
 
+## Indian number grouping, and why software gets it wrong
+
+Most programming languages group digits in threes: 2,500,000. India groups the last three digits, then twos: 25,00,000. Same number, and to an Indian reader the first one looks like a typo.
+
+The names follow the groups. 1,00,000 is one lakh. 1,00,00,000 is one crore. So ₹25,00,000 reads instantly as "twenty-five lakh", while ₹2,500,000 makes you count.
+
+Python, JavaScript and most libraries default to the Western style. Any app for an Indian bank needs its own formatter. Ours is `format_rupees` in `backend/app/utils/finance.py`, and it is used everywhere a rupee amount is shown in a message.
+
+---
+
 ## Why banks never show customers their internal risk score
 
 When a bank scores your application, that score and the rules behind it stay inside the bank. Customers see the outcome, not the working.

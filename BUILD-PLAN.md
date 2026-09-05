@@ -149,8 +149,8 @@ FINAL_CHANCE/                     ← the git repository starts here
 | 7 | Application endpoints | Create, view, list, change status. History and documents loaded in one query. | **Done 2026-09-06** |
 | 8 | Document endpoints | Record an uploaded document | **Done 2026-09-06** |
 | 9 | Dashboard endpoint | The counts, as one grouped query | **Done 2026-09-06** |
-| **10** | **Eligibility check** | Warns the form before submitting, all three loan types | **Next** |
-| 11 | Activity log | One table, one write helper, one manager-only page. Records human or AI actor. | Ready |
+| 10 | Eligibility check | Warns the form before submitting, all three loan types | **Done 2026-09-06** |
+| **11** | **Activity log** | One table, one write helper, one manager-only page. Records human or AI actor. | **Next** |
 | 12 | Logging and tracing | JSON logs with request ID and associate ID; timings on every request | Ready |
 | 13 | Tests | All 20, in `tests/phase1/`, named as the trainer's file says | Ready |
 | 14 | React front-end | The demo. Backend address from a setting, never hardcoded. | After the backend |
@@ -488,6 +488,31 @@ DB-01, DB-03, DB-04 pass with the models alone. DB-02 needs the models plus the 
 
 ---
 
+## Piece 11 — The activity log, the reading side
+
+**What it is:** the table and the writer already exist (Pieces 3 and 5), and every service has been writing to it since. This piece is the manager's window onto it. Rohit's idea (D-11).
+
+**File:** `routers/activity.py`, plus two read functions added to `services/activity_service.py`.
+
+**Addresses, branch manager only:**
+
+| Method | Address | What it gives |
+|---|---|---|
+| GET | `/api/v1/activity` | A page of events, newest first. Filters: who (`actor_id`), what (`action`), human or AI (`actor_type`), which record (`entity_type` + `entity_id`), date range. All combined with AND. |
+| GET | `/api/v1/activity/entity/{type}/{id}` | Everything that ever happened to one record, oldest first. For the application detail page: "the full story of application 5". |
+
+**What a row shows:** who acted (a person's email, or an AI agent's name and who it was acting for), what they did, which record, the details, the request id that ties it to the server log line, and when.
+
+**What is deliberately not here:** the big-version items in `FUTURE-UPGRADES.md`. No export, no search box, no retention rules. One page, filters, done.
+
+**Recorded in the activity log:** nothing. Reading the log does not write to the log, or it would fill itself up.
+
+**Tests this piece satisfies:** none of the trainer's, by design. It is ours.
+
+**Nothing open.**
+
+---
+
 ## Done
 
 | # | Piece | Finished | Commit |
@@ -502,3 +527,4 @@ DB-01, DB-03, DB-04 pass with the models alone. DB-02 needs the models plus the 
 | 7 | Application endpoints | 2026-09-06 | `services/application_service.py`, `routers/applications.py`. Smoke test covers UNIT-05, UNIT-06, API-01 to API-07, per-type limits, the 400 on backward moves, manager-only disbursement, and owner scoping. Tag `v0.0.7`. |
 | 8 | Document endpoints | 2026-09-06 | `services/document_service.py`, `routers/documents.py`, `DocumentUploadBody` and `DocumentListResponse` schemas. Add, list with a required/missing checklist, verify. Smoke test passes. Tag `v0.0.8`. |
 | 9 | Dashboard | 2026-09-06 | `services/dashboard_service.py`, `routers/dashboard.py`, `schemas/dashboard.py`. Three grouped queries, every key present at zero, two extra numbers. API-08 passes; answers in ~10 ms. Tag `v0.0.9`. |
+| 10 | Eligibility check | 2026-09-06 | `utils/finance.py` (EMI maths, UNIT-03, and an Indian rupee formatter), `utils/dates.py`, `services/eligibility_service.py`, `routers/eligibility.py`. Seven checks with plain-English messages and suggestions. Twenty-one smoke checks pass. Tag `v0.0.10`. |

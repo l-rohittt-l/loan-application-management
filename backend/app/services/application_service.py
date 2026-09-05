@@ -18,6 +18,7 @@ from app.models.user import User, UserRole
 from app.schemas.application import CreateApplicationSchema
 from app.services import activity_service
 from app.services.errors import Forbidden, NotFound, RuleViolation
+from app.utils.finance import format_rupees
 
 logger = structlog.get_logger()
 
@@ -46,7 +47,7 @@ def check_type_limits(loan_type, amount: float, tenure_months: int) -> None:
     cap = rules.amount_limit(loan_type)
     if amount > cap:
         raise RuleViolation(
-            f"A {rules._v(loan_type)} loan cannot exceed ₹{cap:,.0f}"
+            f"A {rules._v(loan_type)} loan cannot exceed {format_rupees(cap)}"
         )
 
 
