@@ -38,6 +38,16 @@ Newest entries at the top. Short on purpose.
 
 ## The log
 
+## 2026-09-06 — Session 15: Piece 7, the application endpoints
+
+**Asked for:** keep going.
+**Built:** submitting, viewing, listing and moving applications through their statuses. Per-loan-type limits with plain-English messages, the audit row on every change, the manager-only rule on paying out, and owner scoping so an applicant only sees their own. The detail view loads everything in one query.
+**Found:** nothing new. Nine of the trainer's twenty tests are now covered by smoke tests, and the home loan from API-03 that breaks the 50% EMI rule is accepted as planned (D-01).
+**Realised:** the eligibility warning (Piece 10) and the document checklist (Piece 8) are what turn these rules into something a customer actually sees.
+**Next:** Piece 8, documents. Plan written.
+
+---
+
 ## 2026-09-06 — Session 14: Piece 6, borrower profiles
 
 **Asked for:** keep going.

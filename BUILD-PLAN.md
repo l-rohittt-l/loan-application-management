@@ -146,8 +146,8 @@ FINAL_CHANCE/                     ← the git repository starts here
 | 4 | Schemas | Input checking on every field, not just the ones the trainer names | **Done 2026-09-06** |
 | 5 | Auth | Staff register, applicant signup, login, token, roles (Option A) | **Done 2026-09-06** |
 | 6 | Applicant endpoints | Create and view a borrower | **Done 2026-09-06** |
-| **7** | **Application endpoints** | Create, view, list, change status. History and documents loaded in one query. | **Next** |
-| 8 | Document endpoints | Record an uploaded document | Ready |
+| 7 | Application endpoints | Create, view, list, change status. History and documents loaded in one query. | **Done 2026-09-06** |
+| **8** | **Document endpoints** | Record an uploaded document | **Next** |
 | 9 | Dashboard endpoint | The counts, as one grouped query | Ready |
 | 10 | Eligibility check | Warns the form before submitting, all three loan types | Waiting on D-14 |
 | 11 | Activity log | One table, one write helper, one manager-only page. Records human or AI actor. | Ready |
@@ -412,6 +412,32 @@ DB-01, DB-03, DB-04 pass with the models alone. DB-02 needs the models plus the 
 
 ---
 
+## Piece 8 — Document endpoints
+
+**What it is:** recording which documents an applicant has provided, and letting a loan officer mark one as checked. Phase 1 stores only the file name, not the file itself; real upload is in `FUTURE-UPGRADES.md`.
+
+**Files:** `services/document_service.py`, `routers/documents.py`. The router is mounted under `/api/v1/applications` so the addresses read naturally.
+
+**Addresses:**
+
+| Method | Address | Who | Answers |
+|---|---|---|---|
+| POST | `/api/v1/applications/{id}/documents` | Staff, or the owning applicant | 201; 404 unknown application; 422 bad type or file name; 403 |
+| GET | `/api/v1/applications/{id}/documents` | Staff, or the owning applicant | 200 with `items`, plus `required` and `missing` lists so the screen can show a checklist |
+| PATCH | `/api/v1/applications/{id}/documents/{doc_id}/verify` | Staff only | 200; 404; 403 |
+
+**Two things from the manual, built in:** the same document type may be uploaded twice and both are kept (user story 05). Officers verify documents (manual Section 2), which is what the `verify` address does, and it is what makes `kyc_verified` possible in Phase 5.
+
+**Small design choice:** the trainer's `CreateDocumentSchema` carries `application_id` because UNIT-07 builds it that way. The endpoint gets the id from the address instead, so the body is just `doc_type` and `file_name`. The service accepts the trainer's schema; the router builds it from the address plus the body.
+
+**Recorded in the activity log:** `document_added`, `document_verified`.
+
+**Tests this piece satisfies:** none directly (the trainer's document tests are database-level and already pass), but user story 05 and Phase 5's compliance checker depend on it.
+
+**Nothing open.**
+
+---
+
 ## Done
 
 | # | Piece | Finished | Commit |
@@ -423,3 +449,4 @@ DB-01, DB-03, DB-04 pass with the models alone. DB-02 needs the models plus the 
 | 4 | Schemas | 2026-09-06 | `schemas/` with six files. Every input field checked. Smoke test mirrors UNIT-02, 04, 07, 08 plus eight stricter checks; all pass. Tag `v0.0.4`. |
 | 5 | Auth | 2026-09-06 | `utils/auth.py`, `dependencies.py`, `services/auth_service.py`, `services/activity_service.py`, `services/errors.py`, `routers/auth.py`. Smoke test covers the trainer's fixture, 401-not-403, role gate, applicant signup creating two rows, and five activity-log rows. Tag `v0.0.5`. |
 | 6 | Applicant endpoints | 2026-09-06 | `services/applicant_service.py`, `routers/applicants.py`. Smoke test covers UNIT-01, the `test_applicant` fixture, and owner scoping (an applicant is blocked from other profiles, the list, and creating). Tag `v0.0.6`. |
+| 7 | Application endpoints | 2026-09-06 | `services/application_service.py`, `routers/applications.py`. Smoke test covers UNIT-05, UNIT-06, API-01 to API-07, per-type limits, the 400 on backward moves, manager-only disbursement, and owner scoping. Tag `v0.0.7`. |
