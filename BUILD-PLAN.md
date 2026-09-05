@@ -154,8 +154,10 @@ FINAL_CHANCE/                     ← the git repository starts here
 | 12 | Logging, tracing, and `main.py` | JSON logs with request ID and associate ID; timings on every request; the server itself | **Done 2026-09-06** |
 | 13 | Tests | All 20, in `tests/phase1/`, named as the trainer's file says | **Done 2026-09-06 — 20 of 20 pass** |
 | 14 | React front-end | The demo. Backend address from a setting, never hardcoded. | **Done 2026-09-06** |
-| **15** | **Streamlit front-end** | List, form, dashboard | **Next** |
-| 16 | Seed data and test report | Demo data, then the submission files | Last |
+| 15 | Streamlit front-end | List, form, dashboard | **Done 2026-09-06** |
+| 16 | Seed data and test report | Demo data, then the submission files | **Done 2026-09-06** |
+
+**Phase 1 is complete.** Tagged `v0.1.0`. Phase 2 gets its own piece list below when it starts.
 
 ---
 
@@ -642,6 +644,22 @@ frontend/
 
 ---
 
+## Piece 16 — Seed data, test report, and the submission files
+
+**What it is:** the last mile. Demo data that makes the screens look real, the test report file the program requires, the score tracker, and a README so a reviewer can run everything from a clean machine.
+
+**Files:** `backend/seed.py` (already written and run), `MY_SCORES.md`, `README.md`, and the generated `backend/results/phase1-results.xml`.
+
+**The seed:** two staff (a seeded manager, an officer), six customers with logins and profiles covering every interesting case (no CIBIL score, a 55-year-old wanting a long home loan, a new-to-job applicant, existing EMIs), and eight applications spread across all five statuses with documents in various states of verification. Everything goes through the real services, so the history and activity log are genuine.
+
+**The report:** `pytest --junitxml=results/phase1-results.xml`, as the associate guide specifies. The file is generated, not committed (`results/` is ignored); it goes in the submission package alongside a terminal screenshot, which Rohit takes himself.
+
+**Still Rohit's to do for submission:** the terminal screenshot of the full test run, and pushing or zipping the source. Both are in the associate guide's Step 6 and 7.
+
+**Nothing open.**
+
+---
+
 ## Done
 
 | # | Piece | Finished | Commit |
@@ -661,3 +679,5 @@ frontend/
 | 12 | Logging, tracing, `main.py` | 2026-09-06 | `utils/logging_config.py`, `utils/otel_config.py`, `middleware/logging_middleware.py`, `main.py`; `auth.validate` span in `dependencies.py`; `duration_ms` on the create and status-change logs. Smoke test reads the JSON log lines back and checks every required field. Tag `v0.0.12`. |
 | 13 | The trainer's 20 tests | 2026-09-06 | `pytest.ini`, `tests/conftest.py`, `tests/phase1/test_unit.py`, `test_api.py`, `test_db.py`. **All 20 pass** (27 runs with parametrised cases). One documented adaptation, T-36. Tag `v0.0.13`. |
 | 14 | React front-end | 2026-09-06 | `frontend/` on Vite with React 18, Axios and React Router. Nine pages, six components, the API client with token and 401 handling, client-side checks mirroring the server. Builds clean. Added `GET /applicants/me` to the backend so an applicant can load their own profile. Tag `v0.0.14`. |
+| 15 | Streamlit front-end | 2026-09-06 | `frontend-streamlit/app.py`. Sidebar login with the token in `st.session_state`; tabs for the list (filters, status colours, detail with history and documents, status update for staff), the form with the eligibility check, and the dashboard. Serves on 8501. Tag `v0.0.15`. |
+| 16 | Seed data, report, submission files | 2026-09-06 | `backend/seed.py` (2 staff, 6 customers, 8 applications, 58 activity rows), `README.md`, `MY_SCORES.md`, `results/phase1-results.xml` (27 runs, 0 failures). Tags `v0.0.16` and **`v0.1.0`**. |

@@ -67,4 +67,6 @@ The user manual is written for Phase 2. It describes some things the trainer's P
 | SMS OTP | Your idea | Needs a paid gateway and DLT registration we can't get. Email OTP is the realistic version. | Blocked |
 | Hosting the app online | Your idea, so it can be used from the Wipro laptop through a browser | Decide before the demo, not now. See D-12. | Medium |
 | SonarQube code quality gates | A peer ran it targeting 80% coverage and A ratings | Good answer to "how do you ensure quality?", but not graded | Medium |
+| Automated tests for the React app | Came up while finishing Phase 1; the program grades only backend tests | Vitest plus React Testing Library for the form validation and the status badge colours | Small |
+| A `python -m app` entry so `uvicorn` is not typed by hand | Convenience noticed writing the README | One file | Tiny |
 | RAGAS automated answer scoring | Scoring rubric mentions it as optional | Only useful once Phase 2 answers exist | Small |

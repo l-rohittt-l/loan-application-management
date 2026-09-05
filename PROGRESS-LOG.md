@@ -9,10 +9,11 @@ Newest entries at the top. Short on purpose.
 - [x] `01-POC-BLUEPRINT.md` — Parts 1 to 6, the whole Phase 1 contract
 - [x] `01` — Part 13, the contradictions
 - [x] `02` — Part 1, Change 10, the review punch list
-- [ ] `TRAPS-AND-DECISIONS.md` — 4 items need answers: D-12, D-13, D-14, D-15 ← **next**
-- [ ] `BUILD-PLAN.md` — Piece 0, the install commands ← **next**
-- [ ] `02-GROUND-TRUTH-SHIFTS.md` — the rest. Part 3 needed before Phase 2 starts.
-- [ ] `03-THE-FLOW-WHAT-HAPPENED.md`
+- [x] `TRAPS-AND-DECISIONS.md` — all decisions answered except D-09 (Angular later)
+- [ ] `02-GROUND-TRUTH-SHIFTS.md` — **Part 3, the Gemini/Ollama switch** ← **next, before Phase 2**
+- [ ] `README.md` — how to run everything, and the demo logins ← **next**
+- [ ] `02-GROUND-TRUTH-SHIFTS.md` — the rest, whenever
+- [ ] `03-THE-FLOW-WHAT-HAPPENED.md` — whenever
 
 ---
 
@@ -37,6 +38,26 @@ Newest entries at the top. Short on purpose.
 ---
 
 ## The log
+
+## 2026-09-06 — Session 24: Phase 1 complete
+
+**Asked for:** keep going.
+**Built:** the submission files. A README that takes a reviewer from a clean machine to a running app in four steps, the score tracker with 20 of 20, and the JUnit report file the associate guide asks for. Tagged the project `v0.1.0`.
+**Found:** nothing new.
+**Realised:** Phase 1 took sixteen pieces and one day. Every trainer test passes, every review comment from the mentor chats is built in, and there is a version tag for every step. What Rohit still has to do himself for the submission: take the terminal screenshot of the test run, and share the repository or a zip with the reviewer.
+**Next:** Phase 2, the RAG chatbot. It needs a Gemini API key from Rohit, and he should read File 02, Part 3 (the Gemini/Ollama switch) before it starts. Plan comes first.
+
+---
+
+## 2026-09-06 — Session 23: Piece 15, Streamlit, and the seed data
+
+**Asked for:** keep going.
+**Built:** the Streamlit front-end in one file: sidebar login, an applications tab with filters, the trainer's status colours, a detail view with history and documents and a status-update form for staff, a new-application tab with the eligibility check, and a dashboard tab with metrics and bar charts. Also ran the seed script: two staff, six customers, eight applications across every status, 58 activity rows.
+**Found:** VS Code's "package not installed" hints were only the editor looking at the wrong Python. A workspace setting now points it at the virtual environment.
+**Realised:** the Streamlit file is the base for the Phase 2 chat screen the tests check, so it was worth doing properly.
+**Next:** Piece 16, the submission files. README, score tracker, and the test report.
+
+---
 
 ## 2026-09-06 — Session 22: Piece 14, the React front-end
 
