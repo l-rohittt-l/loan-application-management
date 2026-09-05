@@ -144,8 +144,8 @@ FINAL_CHANCE/                     ← the git repository starts here
 | 2 | Domain rules | Every loan rule in one file | **Done 2026-09-06** |
 | 3 | Database + 6 models | Six tables, with indexes on the filtered columns | **Done 2026-09-06** |
 | 4 | Schemas | Input checking on every field, not just the ones the trainer names | **Done 2026-09-06** |
-| **5** | **Auth** | Staff register, applicant signup, login, token, roles (Option A) | **Next** |
-| 6 | Applicant endpoints | Create and view a borrower | Ready |
+| 5 | Auth | Staff register, applicant signup, login, token, roles (Option A) | **Done 2026-09-06** |
+| **6** | **Applicant endpoints** | Create and view a borrower | **Next** |
 | 7 | Application endpoints | Create, view, list, change status. History and documents loaded in one query. | Ready |
 | 8 | Document endpoints | Record an uploaded document | Ready |
 | 9 | Dashboard endpoint | The counts, as one grouped query | Ready |
@@ -357,6 +357,28 @@ DB-01, DB-03, DB-04 pass with the models alone. DB-02 needs the models plus the 
 
 ---
 
+## Piece 6 — Applicant endpoints
+
+**What it is:** creating and viewing a borrower profile. Small piece, but it carries the first owner-scoping rule (the peer bug from Change 10) and the function the trainer's UNIT-01 test calls by name.
+
+**Files:** `services/applicant_service.py`, `routers/applicants.py`.
+
+**Addresses:**
+
+| Method | Address | Who may call | Answers |
+|---|---|---|---|
+| POST | `/api/v1/applicants` | Staff | 201, 409 duplicate email, 422 bad data. The trainer's `test_applicant` fixture uses this with an officer's token. |
+| GET | `/api/v1/applicants` | Staff | 200, paged list |
+| GET | `/api/v1/applicants/{id}` | Staff see anyone. **An applicant sees only their own profile**; asking for someone else's gets 403. | 200, 403, 404 |
+
+**The function the test names:** `applicant_service.create_applicant(db, data)` must accept exactly a session and a `CreateApplicantSchema`, and return an object with `id`, `email`, `credit_score` and `created_at` filled in (UNIT-01).
+
+**Recorded in the activity log:** `applicant_created`, with who created it.
+
+**Nothing open.**
+
+---
+
 ## Done
 
 | # | Piece | Finished | Commit |
@@ -366,3 +388,4 @@ DB-01, DB-03, DB-04 pass with the models alone. DB-02 needs the models plus the 
 | 2 | Domain rules | 2026-09-06 | `app/domain/rules.py`: every rule as plain constants and six helpers. No imports from the app. Sanity checks pass. |
 | 3 | Database + 6 models | 2026-09-06 | `config.py`, `database.py`, and `models/` with the six tables. Smoke test mirrors DB-01 to DB-04 and passes. Tag `v0.0.3`. |
 | 4 | Schemas | 2026-09-06 | `schemas/` with six files. Every input field checked. Smoke test mirrors UNIT-02, 04, 07, 08 plus eight stricter checks; all pass. Tag `v0.0.4`. |
+| 5 | Auth | 2026-09-06 | `utils/auth.py`, `dependencies.py`, `services/auth_service.py`, `services/activity_service.py`, `services/errors.py`, `routers/auth.py`. Smoke test covers the trainer's fixture, 401-not-403, role gate, applicant signup creating two rows, and five activity-log rows. Tag `v0.0.5`. |

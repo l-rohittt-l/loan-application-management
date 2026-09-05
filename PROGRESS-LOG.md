@@ -38,6 +38,16 @@ Newest entries at the top. Short on purpose.
 
 ## The log
 
+## 2026-09-06 — Session 13: Piece 5, logging in
+
+**Asked for:** keep going.
+**Built:** the login system. Password hashing, token creation and checking, the "who is calling" dependency every protected endpoint uses, a role gate, and four addresses: staff register, applicant signup, login, and "who am I". Also the activity-log writer, since logins are the first thing worth recording.
+**Found:** nothing new. The 401-versus-403 trap (T-01) is handled and tested.
+**Realised:** login failures now take the same time whether the email exists or not, so nobody can use the login page to discover which emails are registered. Small, but it is the kind of thing an ADH asks about.
+**Next:** Piece 6, the applicant endpoints. Plan written.
+
+---
+
 ## 2026-09-06 — Session 12: Piece 4, the input-checking layer
 
 **Asked for:** keep going.
