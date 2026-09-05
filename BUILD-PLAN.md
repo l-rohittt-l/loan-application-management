@@ -141,8 +141,8 @@ FINAL_CHANCE/                     ← the git repository starts here
 |---|---|---|---|
 | 0 | Tools on the laptop | Install git, Python, Node. Create the GitHub repository. | **Done 2026-09-06** |
 | 1 | Project skeleton | Folders, virtual environment, package list, settings file | **Done 2026-09-06** |
-| **2** | **Domain rules** | Every loan rule in one file | **Next** |
-| 3 | Database + 6 models | Six tables, with indexes on the filtered columns | Ready |
+| 2 | Domain rules | Every loan rule in one file | **Done 2026-09-06** |
+| **3** | **Database + 6 models** | Six tables, with indexes on the filtered columns | **Next** |
 | 4 | Schemas | Input checking on every field, not just the ones the trainer names | Ready |
 | 5 | Auth | Staff register, applicant signup, login, token, roles (Option A) | Ready |
 | 6 | Applicant endpoints | Create and view a borrower | Ready |
@@ -213,9 +213,79 @@ Runs as soon as Piece 0 is done.
 
 ---
 
+## Piece 2 — Domain rules
+
+**One file:** `backend/app/domain/rules.py`.
+
+**What it is:** every business rule of the loan system, written once, as plain Python constants and a few tiny helper functions. Nothing else in the project types a loan limit or a status transition by hand. They import it from here.
+
+**Why it matters more than its size:** the same rules appear in five places across the five phases: Phase 1 validation, the Phase 2 manual, the Phase 3 tool that reports status, the Phase 4 tool that changes status, and the Phase 5 compliance and decision agents. If each phase has its own copy, they drift, and the chatbot ends up contradicting the app. One file, imported everywhere, and they cannot drift.
+
+**One design choice:** this file imports nothing from the rest of the app. No database, no models, no FastAPI. Just numbers, sets, and small functions. That way Phase 3 and Phase 5 can import it without dragging in the whole web server. The status and document *enums* live in the models (the tests import them from there), but they use the same string values as this file, so they compare equal.
+
+**What goes in it:**
+
+| Group | Contents | Source |
+|---|---|---|
+| Allowed values | loan types, statuses, document types (six, with vehicle quotation), employment statuses, user roles | Blueprint Part 5, D-04, D-07 |
+| Status machine | which status can move to which, and which move needs a manager | Blueprint Part 5, D-06 |
+| Amounts | global 10,000 to 1 crore; per type: personal 25 lakh, auto 50 lakh, home 1 crore | Blueprint Part 6, D-03 |
+| Tenure | global 6 to 360; per type: personal 12–60, home 12–360, auto 12–84 | Blueprint Part 6, D-02 |
+| Eligibility | minimum CIBIL, minimum income, age range per type; home loan must end before 70 | Manual Section 5, D-05 |
+| Documents | required documents per loan type | Manual Section 4, D-04 |
+| Affordability | EMI may not exceed 50% of monthly income; default interest 12% for estimates | D-14, Phase 5 doc |
+| Employment | salaried need 6 months with current employer, self-employed need 2 years | Manual Section 11 FAQ |
+| Phase 5 scoring | approve above 70, reject below 40, the deduction table | D-10, T-13, T-14 |
+| Helpers | `is_valid_transition`, `requires_manager`, `tenure_range`, `amount_limit`, `required_documents`, `missing_documents` | — |
+
+**What does not go in it:** the EMI formula. The tests require that at `app.utils.finance.calculate_emi`, so it lives there. Eligibility *checking* (which needs EMI maths and an applicant's data) goes in a service in Piece 10. This file only holds the numbers and the yes/no rules.
+
+**Tests it satisfies:** UNIT-05 and UNIT-06 (status transitions) end up as one-line wrappers around this file.
+
+**Open before building:** D-16 in the traps file. Two Phase 5 rules reference applicant data the table does not have.
+
+---
+
+## Piece 3 — Database and the six tables
+
+**Files:** `app/database.py` (the connection), `app/models/__init__.py`, and one file per table in `app/models/`.
+
+**What a "model" is:** a Python class that describes one database table. Each attribute is a column. SQLAlchemy reads these classes and creates the tables for us. So this piece is "describe the six tables in Python".
+
+### The connection — `database.py`
+
+- Opens the SQLite file named in `.env`.
+- Sets `check_same_thread=False`, which SQLite needs when a web server handles several requests at once (trainer's common-mistake #1).
+- **Does not turn on foreign-key enforcement.** Two of the trainer's tests create records pointing at an applicant that doesn't exist, and would fail if SQLite checked (T-03).
+- Provides `Base` and `get_db`, which the tests import by those exact names (T-06).
+
+### The six tables
+
+| Table | File | Columns | Notes |
+|---|---|---|---|
+| **users** | `user.py` | id, name, email, hashed_password, role, is_active, created_at | Who logs in. `role` is one of the three in the rules file. Email unique. |
+| **applicants** | `applicant.py` | id, user_id, name, email, phone, **date_of_birth**, credit_score, annual_income, employment_status, **years_with_employer**, **existing_monthly_emi**, created_at | Who borrows. The three bold columns are our additions (D-05, D-16), all optional. `user_id` links to a login when the applicant signed up themselves; empty when an officer created the record. |
+| **loan_applications** | `application.py` | id, applicant_id, loan_type, amount_requested, tenure_months, purpose, status, submitted_at, updated_at | The loan request. Also defines the `LoanType` and `ApplicationStatus` enums the tests import. |
+| **documents** | `document.py` | id, application_id, doc_type, file_name, uploaded_at, verified | Six document types. Deleted automatically when the application is deleted (T-04). |
+| **status_history** | `status_history.py` | id, application_id, old_status, new_status, changed_by, changed_at, remarks | The audit trail. Also deleted with the application. |
+| **activity_log** | `activity_log.py` | id, actor_type, actor_id, actor_role, on_behalf_of, action, entity_type, entity_id, details, request_id, ip_address, created_at | Your idea (D-11). `actor_type` is "human" or "ai". `actor_id` is the email, or the agent's name. `on_behalf_of` is the user an AI was acting for. |
+
+### Speed, built in now
+
+Indexes on every column we will filter or sort by: `status`, `loan_type`, `applicant_id`, `submitted_at` on applications; `application_id` on documents and history; `created_at`, `actor_id` and `entity_id` on the activity log; `email` on users and applicants. An index is a lookup table the database keeps so it can find rows without reading the whole table.
+
+### Tests this piece satisfies
+
+DB-01, DB-03, DB-04 pass with the models alone. DB-02 needs the models plus the fixtures from Piece 13.
+
+### Nothing open. All decisions this needs are settled.
+
+---
+
 ## Done
 
 | # | Piece | Finished | Commit |
 |---|---|---|---|
 | 0 | Tools on the laptop | 2026-09-06 | `02fcf34` first commit; repo at `github.com/l-rohittt-l/loan-application-management` (private) |
 | 1 | Project skeleton | 2026-09-06 | `backend/` with `app/` package, venv on Python 3.11.9, `requirements.txt` at trainer's versions plus two fixes (T-30, T-31), `.env` with a generated secret, `.env.example` |
+| 2 | Domain rules | 2026-09-06 | `app/domain/rules.py`: every rule as plain constants and six helpers. No imports from the app. Sanity checks pass. |

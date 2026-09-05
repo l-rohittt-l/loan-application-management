@@ -38,6 +38,16 @@ Newest entries at the top. Short on purpose.
 
 ## The log
 
+## 2026-09-06 — Session 10: Piece 2, the rules file
+
+**Asked for:** add the two missing applicant fields (job length, existing EMIs) and build Piece 2.
+**Built:** `app/domain/rules.py`. Every loan rule as plain Python: allowed values, the status machine, amount and tenure limits per loan type, eligibility numbers, required documents, the 50% EMI rule, employment minimums, and the Phase 5 scoring bands. Six small helper functions. Imports nothing from the app, so any phase can use it.
+**Found:** nothing new. Every rule already had a settled source.
+**Realised:** Rohit is happy with the one-thing-at-a-time pace.
+**Next:** Piece 3, the database connection and the six tables. Plan is written; waiting for a go.
+
+---
+
 ## 2026-09-06 — Session 9: Piece 1, the skeleton
 
 **Asked for:** go ahead with Piece 1, and only raise parked questions when a piece actually needs them.

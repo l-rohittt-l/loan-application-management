@@ -96,6 +96,10 @@ No decision needed. These break something quietly if forgotten.
 
 **T-29 · The project lives inside OneDrive.** Git and OneDrive can fight: OneDrive syncs the hidden `.git` folder while git is writing to it, and that occasionally corrupts the repository. For a solo project with GitHub as the backup, the risk is small and the fix is to re-clone. If it ever misbehaves, the cure is to either move the project out of OneDrive or tell OneDrive to skip this folder.
 
+### From planning the domain rules (2026-09-06)
+
+**T-32 · Phase 5 reads applicant facts that no table stores.** Employment length and existing loan payments. Raised as D-16.
+
 ### Packages
 
 **T-30 · passlib 1.7.4 breaks with bcrypt 4.1 or newer.** The trainer pins passlib but not bcrypt. Newer bcrypt removed something passlib reads at startup, so password hashing throws an error. Fix: pin `bcrypt==4.0.1` in `requirements.txt`. Done.
@@ -111,6 +115,9 @@ No decision needed. These break something quietly if forgotten.
 ---
 
 # Settled
+
+### 2026-09-06 · D-16 — Two more Applicant fields for Phase 5
+**Answer: add both.** `years_with_employer` (decimal, 0.5 = six months) and `existing_monthly_emi` (rupees, default 0). Both optional so no test breaks. When missing, Phase 5 falls back to the trainer's assumptions. Employment length also lets us check the manual's rule of 6 months salaried / 2 years self-employed.
 
 ### 2026-09-05 · D-13 — The headline showcase feature
 **Answer: the Manager's Morning Briefing.** The AI reads the whole pipeline and writes the manager a short summary: what is stuck, what is risky and why, what needs attention today. Apply-by-chatting and policy what-if go to `FUTURE-UPGRADES.md`. This also closes D-08.
