@@ -154,7 +154,7 @@ The trainer's documents name validation rules for a handful of fields. Apply the
 
 Rohit is learning Python while building this. Long sentences and clever phrasing slow him down.
 
-- Short sentences. One idea each.
+- Natural sentences that flow, not chopped fragments. Rohit found very short sentences *harder* to follow, because the connecting words were missing. Write the way you would say it out loud.
 - Everyday words. If a technical word is needed, explain it the first time.
 - No abstract phrasing. Say the concrete thing instead.
 - Write like you are chatting with a colleague, not writing a document.
@@ -192,7 +192,7 @@ Nothing in that file gets built until the base requirement it sits on is done an
 
 - Commit after every completed piece from `BUILD-PLAN.md`. Not after every file, not once a week. Every piece.
 - Commit messages say what changed and why, in plain words.
-- Tag each phase when its tests pass: `v0.1.0` for Phase 1, `v0.2.0` for Phase 2, and so on. `v1.0.0` is demo-ready.
+- **Every piece gets a version tag when it is pushed.** The middle number is the last completed phase, the last number is the piece: `v0.0.3` is Phase 1 in progress, piece 3. When Phase 1's tests pass it becomes `v0.1.0`. Phase 2 pieces are `v0.1.1`, `v0.1.2`… and Phase 2 done is `v0.2.0`. `v1.0.0` is demo-ready. Push tags with `git push --tags`.
 - Never commit `.env`, database files, `chroma_db/`, `results/`, or `Chats/`. The `.gitignore` handles it; check `git status` before every commit anyway.
 - Work on `main`. One person, one branch, no ceremony.
 

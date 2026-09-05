@@ -142,8 +142,8 @@ FINAL_CHANCE/                     ← the git repository starts here
 | 0 | Tools on the laptop | Install git, Python, Node. Create the GitHub repository. | **Done 2026-09-06** |
 | 1 | Project skeleton | Folders, virtual environment, package list, settings file | **Done 2026-09-06** |
 | 2 | Domain rules | Every loan rule in one file | **Done 2026-09-06** |
-| **3** | **Database + 6 models** | Six tables, with indexes on the filtered columns | **Next** |
-| 4 | Schemas | Input checking on every field, not just the ones the trainer names | Ready |
+| 3 | Database + 6 models | Six tables, with indexes on the filtered columns | **Done 2026-09-06** |
+| **4** | **Schemas** | Input checking on every field, not just the ones the trainer names | **Next** |
 | 5 | Auth | Staff register, applicant signup, login, token, roles (Option A) | Ready |
 | 6 | Applicant endpoints | Create and view a borrower | Ready |
 | 7 | Application endpoints | Create, view, list, change status. History and documents loaded in one query. | Ready |
@@ -282,6 +282,44 @@ DB-01, DB-03, DB-04 pass with the models alone. DB-02 needs the models plus the 
 
 ---
 
+## Piece 4 — Schemas, the input-checking layer
+
+**What a schema is:** a description of what a request is allowed to contain. When someone sends data to the API, it is checked against the schema before any of our code runs. If a field is missing, too long, the wrong type, or out of range, the API answers with a 422 error listing exactly what was wrong, and our code never sees the bad data. Pydantic is the library that does this.
+
+**Files, one per topic in `app/schemas/`:** `auth.py` (register, applicant signup, login, token), `applicant.py`, `application.py` (create, status change, list, the eligibility check, and the detailed response with the applicant and history nested inside), `document.py`, `activity.py`.
+
+**The names the tests fix:** `CreateApplicantSchema`, `CreateApplicationSchema`, `CreateDocumentSchema` (T-06).
+
+**Rule 6 applied — every field gets checked, not just the ones the trainer lists:**
+
+| Field | Check |
+|---|---|
+| name | 2 to 100 characters, letters, spaces, dots and hyphens only |
+| email | a real email shape (this is what test UNIT-02 checks) |
+| phone | exactly 10 digits, Indian mobile |
+| password | 8 to 72 characters, at least one capital letter and one digit (72 is bcrypt's hard limit) |
+| credit_score | optional; if given, 300 to 900 (UNIT-08) |
+| annual_income | more than zero, sane upper bound |
+| date_of_birth | optional; not in the future; not before 1900 |
+| years_with_employer | optional; zero or more, at most 60 |
+| existing_monthly_emi | zero or more |
+| amount_requested | 10,000 to 1 crore (UNIT-04). The per-type cap is checked in the service, so this test keeps passing exactly as written. |
+| tenure_months | 6 to 360. Per-type range checked in the service, same reason. |
+| purpose | 3 to 500 characters |
+| doc_type | one of the six (UNIT-07) |
+| file_name | 1 to 255 characters, must end in .pdf, .jpg, .jpeg or .png (manual Section 12) |
+| remarks | up to 1,000 characters |
+| status filter | one of the five, else 400 (T-18) |
+| page / limit | page 1 or more; limit 1 to 100 |
+
+**Why per-type limits live in the service, not here:** the trainer's UNIT-04 test builds a `CreateApplicationSchema` with `loan_type="personal"` and only checks the global amount bounds. If the schema also enforced the 25-lakh personal cap, the test would still pass, but the eligibility check in Piece 10 needs to explain *why* something is over the limit, which is a service job. Keeping schemas to shape-and-range and services to business rules is the cleaner split.
+
+**Tests this piece satisfies on its own:** UNIT-02, UNIT-04, UNIT-07, UNIT-08.
+
+**Nothing open.**
+
+---
+
 ## Done
 
 | # | Piece | Finished | Commit |
@@ -289,3 +327,4 @@ DB-01, DB-03, DB-04 pass with the models alone. DB-02 needs the models plus the 
 | 0 | Tools on the laptop | 2026-09-06 | `02fcf34` first commit; repo at `github.com/l-rohittt-l/loan-application-management` (private) |
 | 1 | Project skeleton | 2026-09-06 | `backend/` with `app/` package, venv on Python 3.11.9, `requirements.txt` at trainer's versions plus two fixes (T-30, T-31), `.env` with a generated secret, `.env.example` |
 | 2 | Domain rules | 2026-09-06 | `app/domain/rules.py`: every rule as plain constants and six helpers. No imports from the app. Sanity checks pass. |
+| 3 | Database + 6 models | 2026-09-06 | `config.py`, `database.py`, and `models/` with the six tables. Smoke test mirrors DB-01 to DB-04 and passes. Tag `v0.0.3`. |

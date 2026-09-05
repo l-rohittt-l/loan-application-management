@@ -38,6 +38,16 @@ Newest entries at the top. Short on purpose.
 
 ## The log
 
+## 2026-09-06 — Session 11: Piece 3, the six tables
+
+**Asked for:** keep going without waiting for approval on each piece, since Rohit needs time to learn the tech before he can suggest changes. Also: can every push carry a version number?
+**Built:** `config.py` (reads the settings file), `database.py` (the connection, with foreign-key checking deliberately off), and the six table models. A smoke test that copies the trainer's four database tests passes, including the cascade delete and the row that points at a missing applicant.
+**Found:** nothing new in the code. In the writing, Rohit found very short sentences *harder* to read, not easier, so Rule 7 now says natural sentences.
+**Realised:** version tags per piece are cheap and give Rohit a number to point at. Scheme: `v0.0.N` for Phase 1 piece N, `v0.1.0` when Phase 1 passes, then `v0.1.N` for Phase 2 pieces, and so on. Rule 11 updated.
+**Next:** Piece 4, the schemas. Plan written.
+
+---
+
 ## 2026-09-06 — Session 10: Piece 2, the rules file
 
 **Asked for:** add the two missing applicant fields (job length, existing EMIs) and build Piece 2.
