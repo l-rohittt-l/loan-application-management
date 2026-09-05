@@ -38,6 +38,16 @@ Newest entries at the top. Short on purpose.
 
 ## The log
 
+## 2026-09-06 — Session 20: Piece 12, the server comes together
+
+**Asked for:** keep going.
+**Built:** JSON logging with the program's required fields on every line, request ids that tie a request's log lines together and come back in a response header, timings on every request, OpenTelemetry spans for requests, database statements and token checks, a clean 500 with a request id when something crashes, and `main.py` that wires every router into one server with `/health` for the reviewer.
+**Found:** the trainer's own startup log line crashes the server, because structlog's first argument already *is* the event name and the sample passes it twice. Logged as T-35. Copying that line verbatim would mean the app never boots.
+**Realised:** the smoke test reads the actual JSON log lines back and checks them, which is the same thing the Phase 2+ observability tests will do. Worth building that habit now.
+**Next:** Piece 13, the trainer's twenty tests as real pytest files. Plan written.
+
+---
+
 ## 2026-09-06 — Session 19: Piece 11, the manager's activity view
 
 **Asked for:** keep going.

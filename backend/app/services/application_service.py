@@ -6,6 +6,7 @@ UNIT-05 and UNIT-06 tests. It must return True or False, never raise.
 """
 
 from datetime import date, datetime, time
+from time import perf_counter
 
 import structlog
 from sqlalchemy.orm import Session, joinedload, selectinload
@@ -62,6 +63,7 @@ def create_application(
     user: User,
     meta: dict | None = None,
 ) -> LoanApplication:
+    started = perf_counter()
     applicant = db.query(Applicant).filter(Applicant.id == data.applicant_id).first()
     if applicant is None:
         raise NotFound("Applicant not found")
@@ -95,8 +97,10 @@ def create_application(
     )
     db.commit()
     db.refresh(application)
-    logger.info("application_created", application_id=application.id,
-                loan_type=data.loan_type.value, amount=data.amount_requested)
+    logger.info("application_created", operation="create_application",
+                application_id=application.id, loan_type=data.loan_type.value,
+                amount=data.amount_requested,
+                duration_ms=int((perf_counter() - started) * 1000), status="success")
     return application
 
 
@@ -184,6 +188,7 @@ def update_status(
     user: User,
     meta: dict | None = None,
 ) -> LoanApplication:
+    started = perf_counter()
     application = db.query(LoanApplication).filter(LoanApplication.id == application_id).first()
     if application is None:
         raise NotFound(f"Application {application_id} not found")
@@ -213,6 +218,7 @@ def update_status(
     )
     db.commit()
     db.refresh(application)
-    logger.info("status_updated", application_id=application.id,
-                old_status=old_status.value, new_status=new_status.value, changed_by=user.email)
+    logger.info("status_updated", operation="update_status", application_id=application.id,
+                old_status=old_status.value, new_status=new_status.value, changed_by=user.email,
+                duration_ms=int((perf_counter() - started) * 1000), status="success")
     return application

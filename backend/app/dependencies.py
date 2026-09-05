@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.user import User, UserRole
 from app.utils.auth import decode_access_token
+from app.utils.otel_config import get_tracer
 
 logger = structlog.get_logger()
 
@@ -35,24 +36,30 @@ def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
     db: Session = Depends(get_db),
 ) -> User:
-    """Read the token, load the user, or answer 401."""
-    if credentials is None:
-        logger.warning("auth_failure", reason="missing_token")
-        raise _unauthorized("Not authenticated")
+    """Read the token, load the user, or answer 401. Wrapped in an auth.validate span."""
+    with get_tracer().start_as_current_span("auth.validate") as span:
+        if credentials is None:
+            span.set_attribute("auth.token_valid", False)
+            logger.warning("auth_failure", reason="missing_token")
+            raise _unauthorized("Not authenticated")
 
-    payload = decode_access_token(credentials.credentials)
-    if payload is None or not payload.get("sub"):
-        logger.warning("auth_failure", reason="invalid_or_expired_token")
-        raise _unauthorized("Invalid or expired token")
+        payload = decode_access_token(credentials.credentials)
+        if payload is None or not payload.get("sub"):
+            span.set_attribute("auth.token_valid", False)
+            logger.warning("auth_failure", reason="invalid_or_expired_token")
+            raise _unauthorized("Invalid or expired token")
 
-    user = db.query(User).filter(User.email == payload["sub"]).first()
-    if user is None or not user.is_active:
-        logger.warning("auth_failure", reason="user_not_found_or_inactive", email=payload["sub"])
-        raise _unauthorized("Invalid or expired token")
+        user = db.query(User).filter(User.email == payload["sub"]).first()
+        if user is None or not user.is_active:
+            span.set_attribute("auth.token_valid", False)
+            logger.warning("auth_failure", reason="user_not_found_or_inactive", email=payload["sub"])
+            raise _unauthorized("Invalid or expired token")
 
-    # The observability guide asks for this event on every validated token.
-    logger.info("token_validated", user_email=user.email, role=user.role.value, token_valid=True)
-    return user
+        span.set_attribute("auth.user_id", user.id)
+        span.set_attribute("auth.token_valid", True)
+        # The observability guide asks for this event on every validated token.
+        logger.info("token_validated", user_email=user.email, role=user.role.value, token_valid=True)
+        return user
 
 
 def require_role(*roles: UserRole):

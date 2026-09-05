@@ -104,6 +104,14 @@ No decision needed. These break something quietly if forgotten.
 
 **T-34 · No double quotes inside git commit messages.** Windows PowerShell 5.1 mangles a double quote inside an argument to a native program like git, splitting the message into several arguments. The commit fails with a confusing "pathspec did not match" error, and any tag created in the same command lands on the wrong commit. Happened on Piece 7 and needed a tag deleted from GitHub. Rule: commit messages use single quotes or no quotes at all.
 
+### In the trainer's sample code
+
+**T-35 · The trainer's startup log line crashes.** `phase1-fullstack-crud.md` shows `logger.info("startup", event="database_initialized", ...)`. In structlog the first argument already *is* the event, so passing `event=` again raises "got multiple values for argument event" the moment the server starts. Copying that line verbatim means the app never boots. Ours logs `database_initialized` as the event name, which is what the observability checklist actually asks for.
+
+**T-36 · The trainer's DB-02 test reads an id that does not exist yet.** It adds a `LoanApplication` to the session, then immediately builds a `StatusHistory` with `application_id=app.id`. But the row has not been saved, so `app.id` is still `None`, and the history row fails its not-null rule at commit. This would fail on *any* implementation. Our copy adds one `db_session.flush()` after the add, which saves the row and fills in the id. The associate guide allows adapting the skeleton; the reason is in a comment in the test.
+
+**T-37 · pytest does not see `app` from `tests/phase1/`.** With the tests one folder down, pytest puts `tests/` on Python's path, not `backend/`, so `import app` fails. Fixed with `pythonpath = .` in `backend/pytest.ini`.
+
 ### Python itself
 
 **T-33 · In Python 3.11, `str()` of a string-enum is not its value.** `str(ApplicationStatus.submitted)` gives `"ApplicationStatus.submitted"`, not `"submitted"`. The trainer's tests hand the rules enum members; the API hands them strings. Any helper that compares them must use `.value` when it's there. Caught while planning Piece 7; the rules file was using `str()` and would have failed UNIT-05. Fixed with a tiny `_v()` helper.

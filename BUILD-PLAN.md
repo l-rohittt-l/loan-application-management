@@ -151,8 +151,8 @@ FINAL_CHANCE/                     ← the git repository starts here
 | 9 | Dashboard endpoint | The counts, as one grouped query | **Done 2026-09-06** |
 | 10 | Eligibility check | Warns the form before submitting, all three loan types | **Done 2026-09-06** |
 | 11 | Activity log | One table, one write helper, one manager-only page. Records human or AI actor. | **Done 2026-09-06** |
-| **12** | **Logging, tracing, and `main.py`** | JSON logs with request ID and associate ID; timings on every request; the server itself | **Next** |
-| 13 | Tests | All 20, in `tests/phase1/`, named as the trainer's file says | Ready |
+| 12 | Logging, tracing, and `main.py` | JSON logs with request ID and associate ID; timings on every request; the server itself | **Done 2026-09-06** |
+| **13** | **Tests** | All 20, in `tests/phase1/`, named as the trainer's file says | **Next** |
 | 14 | React front-end | The demo. Backend address from a setting, never hardcoded. | After the backend |
 | 15 | Streamlit front-end | List, form, dashboard | After React |
 | 16 | Seed data and test report | Demo data, then the submission files | Last |
@@ -541,6 +541,26 @@ Reads the settings, configures logging and tracing, creates the tables on startu
 
 ---
 
+## Piece 13 — The trainer's twenty tests
+
+**What it is:** the trainer's `phase1-test-spec.md` turned into real test files that pytest runs. This is what the reviewer re-runs against our code, so the names and layout have to match what they expect.
+
+**Files:** `backend/pytest.ini`, `backend/tests/conftest.py`, and `backend/tests/phase1/test_unit.py`, `test_api.py`, `test_db.py`.
+
+**Layout:** `tests/phase1/`, because that is what the reviewer's guide runs (T-15). Each test function keeps the trainer's name and carries its test-case id in a docstring, so the mapping is visible.
+
+**The shared setup (`conftest.py`):** the trainer's `client`, `auth_token` and `test_applicant` fixtures as written, using a file called `test.db` that is created before each test and deleted after (T-20). Plus the two fixtures the trainer's tests use but never define, `db_session` and `test_user` (T-08). Spans are switched off so the output stays readable.
+
+**One adaptation, documented:** the trainer's DB-02 reads `app.id` before the row has been saved, so the id is still empty and the test would fail on *any* implementation. A one-line `flush()` after adding the row makes it work, and the associate guide allows adapting the skeleton. Logged as T-36.
+
+**Small trap on the way:** with tests in `tests/phase1/`, pytest does not put `backend/` on Python's path by itself, so `import app` fails. `pytest.ini` fixes that with one line.
+
+**Target:** 20 of 20. The pass mark is 14, but there is no reason to leave any behind.
+
+**Nothing open.**
+
+---
+
 ## Done
 
 | # | Piece | Finished | Commit |
@@ -557,3 +577,4 @@ Reads the settings, configures logging and tracing, creates the tables on startu
 | 9 | Dashboard | 2026-09-06 | `services/dashboard_service.py`, `routers/dashboard.py`, `schemas/dashboard.py`. Three grouped queries, every key present at zero, two extra numbers. API-08 passes; answers in ~10 ms. Tag `v0.0.9`. |
 | 10 | Eligibility check | 2026-09-06 | `utils/finance.py` (EMI maths, UNIT-03, and an Indian rupee formatter), `utils/dates.py`, `services/eligibility_service.py`, `routers/eligibility.py`. Seven checks with plain-English messages and suggestions. Twenty-one smoke checks pass. Tag `v0.0.10`. |
 | 11 | Activity log, reading side | 2026-09-06 | `routers/activity.py` and two read functions in `activity_service.py`. Manager-only list with six filters, and a per-record history. Smoke test passes. Tag `v0.0.11`. |
+| 12 | Logging, tracing, `main.py` | 2026-09-06 | `utils/logging_config.py`, `utils/otel_config.py`, `middleware/logging_middleware.py`, `main.py`; `auth.validate` span in `dependencies.py`; `duration_ms` on the create and status-change logs. Smoke test reads the JSON log lines back and checks every required field. Tag `v0.0.12`. |

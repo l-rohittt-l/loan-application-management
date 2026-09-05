@@ -39,6 +39,8 @@ class Settings(BaseSettings):
 
     # ---- OpenTelemetry ----
     otel_service_name: str = "poc-01-phase-1"
+    # "console" prints every span to the terminal; "none" switches spans off (tests).
+    otel_exporter: str = "console"
 
     @property
     def cors_origin_list(self) -> list[str]:
