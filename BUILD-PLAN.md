@@ -145,8 +145,8 @@ FINAL_CHANCE/                     ← the git repository starts here
 | 3 | Database + 6 models | Six tables, with indexes on the filtered columns | **Done 2026-09-06** |
 | 4 | Schemas | Input checking on every field, not just the ones the trainer names | **Done 2026-09-06** |
 | 5 | Auth | Staff register, applicant signup, login, token, roles (Option A) | **Done 2026-09-06** |
-| **6** | **Applicant endpoints** | Create and view a borrower | **Next** |
-| 7 | Application endpoints | Create, view, list, change status. History and documents loaded in one query. | Ready |
+| 6 | Applicant endpoints | Create and view a borrower | **Done 2026-09-06** |
+| **7** | **Application endpoints** | Create, view, list, change status. History and documents loaded in one query. | **Next** |
 | 8 | Document endpoints | Record an uploaded document | Ready |
 | 9 | Dashboard endpoint | The counts, as one grouped query | Ready |
 | 10 | Eligibility check | Warns the form before submitting, all three loan types | Waiting on D-14 |
@@ -379,6 +379,39 @@ DB-01, DB-03, DB-04 pass with the models alone. DB-02 needs the models plus the 
 
 ---
 
+## Piece 7 — Application endpoints, the heart of Phase 1
+
+**What it is:** submitting a loan application, viewing one, listing them with filters, and moving one through its statuses. Half of the trainer's API tests hit these four addresses.
+
+**Files:** `services/application_service.py`, `routers/applications.py`.
+
+**Addresses:**
+
+| Method | Address | Who | Answers |
+|---|---|---|---|
+| POST | `/api/v1/applications` | Anyone logged in. An applicant may only apply for themselves. | 201; 404 unknown applicant; 422 missing fields or a per-type rule broken; 403 applying for someone else |
+| GET | `/api/v1/applications` | Staff see all. Applicants see only their own. | 200 with `items`, `total_count`, `page`, `limit`; **400** for a bad status or loan type (T-18) |
+| GET | `/api/v1/applications/{id}` | Staff, or the owning applicant | 200 with the applicant, every status change and every document nested; 403; 404 |
+| PATCH | `/api/v1/applications/{id}/status` | Staff only. `approved → disbursed` needs a manager (D-06). | 200; **400 "Invalid status transition"**; 403; 404 |
+
+**The function the tests name:** `application_service.validate_status_transition(current, new)` returning True or False (UNIT-05, UNIT-06). It is a one-line wrapper around the rules file.
+
+**What happens on submit:** the applicant must exist; the amount and tenure must be inside the per-loan-type range (D-02, D-03), with a plain-English message if not; the application is created with status `submitted`; a first history row is written with no old status; an activity row is written; all committed together.
+
+**What happens on a status change:** the move must be allowed by the rules file; if it is the manager-only move, the caller must be a manager; the status changes, `updated_at` refreshes, a history row records who and why, an activity row is written; all committed together.
+
+**Speed:** the detail view loads the applicant, the history and the documents in **one** query, not one per row. The list view joins the applicant's name in the same query. This is the trainer's "no N+1" requirement.
+
+**Filters on the list:** status, loan type, submitted from date, submitted to date. All combined with AND. Sorted newest first. Page and limit as in the spec.
+
+**Tests this piece satisfies:** UNIT-05, UNIT-06, API-01, API-02, API-03, API-04, API-05, API-06, API-07.
+
+**One bug fixed on the way:** T-33.
+
+**Nothing open.**
+
+---
+
 ## Done
 
 | # | Piece | Finished | Commit |
@@ -389,3 +422,4 @@ DB-01, DB-03, DB-04 pass with the models alone. DB-02 needs the models plus the 
 | 3 | Database + 6 models | 2026-09-06 | `config.py`, `database.py`, and `models/` with the six tables. Smoke test mirrors DB-01 to DB-04 and passes. Tag `v0.0.3`. |
 | 4 | Schemas | 2026-09-06 | `schemas/` with six files. Every input field checked. Smoke test mirrors UNIT-02, 04, 07, 08 plus eight stricter checks; all pass. Tag `v0.0.4`. |
 | 5 | Auth | 2026-09-06 | `utils/auth.py`, `dependencies.py`, `services/auth_service.py`, `services/activity_service.py`, `services/errors.py`, `routers/auth.py`. Smoke test covers the trainer's fixture, 401-not-403, role gate, applicant signup creating two rows, and five activity-log rows. Tag `v0.0.5`. |
+| 6 | Applicant endpoints | 2026-09-06 | `services/applicant_service.py`, `routers/applicants.py`. Smoke test covers UNIT-01, the `test_applicant` fixture, and owner scoping (an applicant is blocked from other profiles, the list, and creating). Tag `v0.0.6`. |

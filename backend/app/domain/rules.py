@@ -76,14 +76,24 @@ MANAGER_ONLY_TRANSITIONS: frozenset[tuple[str, str]] = frozenset(
 )
 
 
-def is_valid_transition(current: str, new: str) -> bool:
+def _v(x) -> str:
+    """
+    Accept an enum member or a plain string, give back the plain string.
+    Needed because in Python 3.11, str(ApplicationStatus.submitted) is
+    "ApplicationStatus.submitted", not "submitted". The tests pass enum
+    members, the API passes strings; this makes both work.
+    """
+    return x.value if hasattr(x, "value") else str(x)
+
+
+def is_valid_transition(current, new) -> bool:
     """True if an application may move from `current` to `new`."""
-    return str(new) in VALID_TRANSITIONS.get(str(current), frozenset())
+    return _v(new) in VALID_TRANSITIONS.get(_v(current), frozenset())
 
 
-def requires_manager(current: str, new: str) -> bool:
+def requires_manager(current, new) -> bool:
     """True if this particular move needs the branch manager role."""
-    return (str(current), str(new)) in MANAGER_ONLY_TRANSITIONS
+    return (_v(current), _v(new)) in MANAGER_ONLY_TRANSITIONS
 
 
 # ---------------------------------------------------------------------------
@@ -101,9 +111,9 @@ AMOUNT_LIMITS: dict[str, int] = {
 }
 
 
-def amount_limit(loan_type: str) -> int:
+def amount_limit(loan_type) -> int:
     """Maximum amount for this loan type."""
-    return AMOUNT_LIMITS[loan_type]
+    return AMOUNT_LIMITS[_v(loan_type)]
 
 
 # ---------------------------------------------------------------------------
@@ -123,9 +133,9 @@ TENURE_LIMITS: dict[str, tuple[int, int]] = {
 }
 
 
-def tenure_range(loan_type: str) -> tuple[int, int]:
+def tenure_range(loan_type) -> tuple[int, int]:
     """(minimum, maximum) months allowed for this loan type."""
-    return TENURE_LIMITS[loan_type]
+    return TENURE_LIMITS[_v(loan_type)]
 
 
 # ---------------------------------------------------------------------------
@@ -202,9 +212,9 @@ REQUIRED_DOCUMENTS: dict[str, frozenset[str]] = {
 }
 
 
-def required_documents(loan_type: str) -> frozenset[str]:
+def required_documents(loan_type) -> frozenset[str]:
     """The document types this loan type must have."""
-    return REQUIRED_DOCUMENTS[loan_type]
+    return REQUIRED_DOCUMENTS[_v(loan_type)]
 
 
 def missing_documents(loan_type: str, uploaded_types) -> list[str]:
@@ -213,8 +223,8 @@ def missing_documents(loan_type: str, uploaded_types) -> list[str]:
     `uploaded_types` is any collection of document type strings.
     Returned sorted so the order is stable in tests and on screen.
     """
-    uploaded = {str(t) for t in uploaded_types}
-    return sorted(required_documents(loan_type) - uploaded)
+    uploaded = {_v(t) for t in uploaded_types}
+    return sorted(required_documents(_v(loan_type)) - uploaded)
 
 
 # ---------------------------------------------------------------------------

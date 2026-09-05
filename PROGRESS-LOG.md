@@ -38,6 +38,16 @@ Newest entries at the top. Short on purpose.
 
 ## The log
 
+## 2026-09-06 — Session 14: Piece 6, borrower profiles
+
+**Asked for:** keep going.
+**Built:** the applicant service and its three addresses. Staff can create and list profiles; an applicant can see only their own. Smoke test passes, including the trainer's UNIT-01 and the fixture every API test relies on.
+**Found:** a bug in my own rules file. Python 3.11 turns a status enum into the text "ApplicationStatus.submitted" when you call `str()` on it, so the transition check would have failed the trainer's UNIT-05. My earlier sanity check only used plain strings, which hid it. Fixed, and logged as T-33.
+**Realised:** smoke tests should use the same inputs the trainer's tests use, enums and all, not just whatever is convenient.
+**Next:** Piece 7, the application endpoints. Plan written.
+
+---
+
 ## 2026-09-06 — Session 13: Piece 5, logging in
 
 **Asked for:** keep going.
