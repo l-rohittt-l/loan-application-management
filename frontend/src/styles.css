@@ -521,6 +521,24 @@ th.sorted { color: var(--ink-900); }
 .tick  { color: var(--status-approved); font-weight: 700; }
 .cross { color: var(--ink-400); font-weight: 700; }
 
+/* Piece 19: pass/fail rows on the eligibility assessment card. */
+.rule-pass { color: var(--status-approved); }
+.rule-fail { color: var(--status-rejected); font-weight: 600; }
+
+/* Piece 19: the stored assessment note on the application detail page.
+   pre-wrap, not scroll, because the text is meant to be read start to end. */
+.eligibility-summary {
+  white-space: pre-wrap;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 0.82rem;
+  background: var(--surface-soft, #f6f7f9);
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  padding: 0.9rem 1rem;
+  margin-top: 0.75rem;
+  line-height: 1.5;
+}
+
 /* ------------------------------------------------------------- dashboard -- */
 .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1rem; margin-bottom: 1.3rem; }
 .tile {

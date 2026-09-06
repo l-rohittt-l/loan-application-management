@@ -5,7 +5,7 @@ The logic behind loan applications: submit, view, list, change status.
 UNIT-05 and UNIT-06 tests. It must return True or False, never raise.
 """
 
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timezone
 from time import perf_counter
 
 import structlog
@@ -18,7 +18,7 @@ from app.models.application import ApplicationStatus, LoanApplication, LoanType
 from app.models.status_history import StatusHistory
 from app.models.user import User, UserRole
 from app.schemas.application import CreateApplicationSchema
-from app.services import activity_service
+from app.services import activity_service, eligibility_service
 from app.services.errors import Forbidden, NotFound, RuleViolation
 from app.utils.finance import format_rupees
 
@@ -75,7 +75,25 @@ def create_application(
 
     check_type_limits(data.loan_type, data.amount_requested, data.tenure_months)
 
-    application = LoanApplication(**data.model_dump(), status=ApplicationStatus.submitted)
+    # Piece 19: the server runs its own eligibility assessment at the moment
+    # of submission and stores the outcome permanently. This is advisory,
+    # same as the check-eligibility endpoint — it never blocks the 201 the
+    # trainer's tests expect (API-01, API-03) — but unlike the browser's copy
+    # it cannot be skipped or faked by anything calling the API directly.
+    assessment = eligibility_service.assess(
+        applicant, data.loan_type.value, data.amount_requested, data.tenure_months
+    )
+    eligibility_summary = eligibility_service.build_summary_text(
+        applicant, data.loan_type.value, data.amount_requested, data.tenure_months,
+        assessment, submitted_by=(user.email if not assessment.eligible else None),
+    )
+
+    application = LoanApplication(
+        **data.model_dump(), status=ApplicationStatus.submitted,
+        eligibility_passed=assessment.eligible,
+        eligibility_summary=eligibility_summary,
+        eligibility_checked_at=datetime.now(timezone.utc),
+    )
     db.add(application)
     db.flush()   # we need the id for the history row
 
@@ -93,7 +111,7 @@ def create_application(
         actor_id=user.email, actor_role=user.role.value,
         entity_type="application", entity_id=application.id,
         details={"loan_type": data.loan_type.value, "amount": data.amount_requested,
-                 "tenure_months": data.tenure_months},
+                 "tenure_months": data.tenure_months, "eligibility_passed": assessment.eligible},
         **(meta or {}),
     )
     db.commit()

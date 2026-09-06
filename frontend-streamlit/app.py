@@ -205,6 +205,11 @@ with tab_list:
                         st.write(f"Applicant: **{a['name']}** · {a['email']} · {a['phone']} · "
                                  f"{label(a['employment_status'])} · income {rupees(a['annual_income'])} · "
                                  f"CIBIL {a['credit_score'] if a['credit_score'] is not None else 'not provided'}")
+                    # Piece 19: the server's own assessment, taken at submission.
+                    if detail.get("eligibility_summary"):
+                        passed = detail.get("eligibility_passed")
+                        with st.expander(f"Eligibility at submission — {'passed' if passed else 'did not pass'}"):
+                            st.text(detail["eligibility_summary"])
                     st.markdown("**Documents**")
                     if not derr:
                         for t in docs["required"]:
@@ -300,10 +305,11 @@ with tab_new:
 
     if "last_check" in st.session_state:
         r = st.session_state["last_check"]
-        (st.success if r["eligible"] else st.warning)("Looks good" if r["eligible"] else "Not eligible as entered")
+        (st.success if r["eligible"] else st.warning)("Looks eligible" if r["eligible"] else "Not eligible as entered")
         st.write(f"Estimated EMI **{rupees(r['estimated_emi'])}** a month · room for EMIs **{rupees(r['max_affordable_emi'])}**")
-        for p in r["problems"]:
-            st.write("• " + p)
+        # Piece 19: every rule, passed or failed — not only the failures.
+        for row in r.get("rule_checks", []):
+            st.write(("✅ " if row["passed"] else "❌ ") + row["label"])
         if r.get("suggested_amount"):
             st.caption(f"Suggested amount: {rupees(r['suggested_amount'])}")
         if r.get("suggested_tenure_months"):

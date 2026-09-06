@@ -7,7 +7,7 @@ Three things live here, and the tests import two of them by name:
   - `init_db`: creates the tables on first start
 """
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 from app.config import settings
@@ -49,3 +49,26 @@ def init_db() -> None:
     from app import models  # noqa: F401  (imported for its side effect)
 
     Base.metadata.create_all(bind=engine)
+    _add_missing_columns()
+
+
+def _add_missing_columns() -> None:
+    """
+    `create_all` only creates tables that do not exist yet — it never adds a
+    column to a table that is already there. `loan_app.db` and `test.db` were
+    both created before Piece 19 added three columns to `loan_applications`,
+    so without this they would silently keep the old shape and every read of
+    the new columns would raise "no such column". SQLite's `ALTER TABLE ...
+    ADD COLUMN` is safe to run more than once because we check first.
+    """
+    with engine.connect() as conn:
+        existing = {row[1] for row in conn.execute(text("PRAGMA table_info(loan_applications)"))}
+        new_columns = {
+            "eligibility_passed": "BOOLEAN",
+            "eligibility_summary": "TEXT",
+            "eligibility_checked_at": "DATETIME",
+        }
+        for name, sql_type in new_columns.items():
+            if name not in existing:
+                conn.execute(text(f"ALTER TABLE loan_applications ADD COLUMN {name} {sql_type}"))
+        conn.commit()

@@ -37,6 +37,7 @@ backend/results/
 # ---- Server logs --------------------------------------------------------
 logs/
 backend/logs/
+backend/uvicorn.log
 
 # ---- Node / React -------------------------------------------------------
 node_modules/

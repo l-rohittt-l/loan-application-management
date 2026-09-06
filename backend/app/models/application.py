@@ -7,7 +7,7 @@ Also defines the two enums the tests import from this exact module:
 
 import enum
 
-from sqlalchemy import Column, DateTime, Enum, Float, ForeignKey, Integer, String
+from sqlalchemy import Boolean, Column, DateTime, Enum, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -49,6 +49,13 @@ class LoanApplication(Base):
     submitted_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
     # onupdate: the database refreshes this whenever the row changes.
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    # Piece 19: the server's own eligibility assessment, taken at the moment
+    # of submission and never changed afterwards. All three are nullable so
+    # rows created before this piece existed still load fine.
+    eligibility_passed = Column(Boolean, nullable=True)
+    eligibility_summary = Column(Text, nullable=True)
+    eligibility_checked_at = Column(DateTime(timezone=True), nullable=True)
 
     applicant = relationship("Applicant", back_populates="applications")
 

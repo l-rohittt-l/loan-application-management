@@ -10,7 +10,21 @@ Things I found that you should know about, and things only you can answer.
 
 # Needs your call
 
-One open, and it can wait.
+This run (Session 33 onwards) is unattended — Rohit is away from the keyboard.
+Decisions that would normally wait for him are made and recorded here instead,
+each with an ID, so he can review and overturn any of them afterwards.
+
+---
+
+### D-18 · How to add three new columns to a database that already has data in it
+
+**What's wrong:** Piece 19 needed three new columns on `loan_applications`. `Base.metadata.create_all()`, the only thing `init_db()` did before now, only creates tables that don't exist yet — it never alters one that's already there. `loan_app.db` and `test.db` both already exist with real rows.
+
+**Chosen:** a small `_add_missing_columns()` step in `database.py`, run every time `init_db()` runs. It reads `PRAGMA table_info(loan_applications)`, and for each of the three new columns not already there, runs `ALTER TABLE ... ADD COLUMN`. Safe to run on every startup — it checks before adding, so it does nothing on a database that already has the columns (including a brand new one, where `create_all` already added them from the model).
+
+**Why:** the alternative was a proper migration tool (Alembic), which is the right answer for a longer-lived project but is a new library, a new folder, and a new command to run before every session — a lot of new surface for three columns in a SQLite file with no other consumers. This is a good decision for a POC's SQLite database; it is not what I would recommend if this were a production system with several people deploying against the same database.
+
+**Your answer:**
 
 ---
 

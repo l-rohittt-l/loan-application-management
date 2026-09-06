@@ -61,6 +61,11 @@ class ApplicationResponse(BaseModel):
     status_history: list[StatusHistoryResponse] = []
     documents: list[DocumentResponse] = []
 
+    # Piece 19: the server's own eligibility assessment, taken at submission.
+    eligibility_passed: bool | None = None
+    eligibility_summary: str | None = None
+    eligibility_checked_at: UtcDateTime | None = None
+
 
 class ApplicationSummary(BaseModel):
     """One row in the list screen."""
@@ -92,10 +97,19 @@ class EligibilityCheckRequest(BaseModel):
     tenure_months: int = Field(..., ge=rules.TENURE_MIN, le=rules.TENURE_MAX)
 
 
+class EligibilityRuleCheck(BaseModel):
+    """One row of the assessment card: a rule, and whether this applicant met it."""
+    label: str
+    passed: bool
+    detail: str | None = None   # only set when passed is False
+
+
 class EligibilityCheckResponse(BaseModel):
     eligible: bool
     # Plain-language reasons, empty when eligible.
     problems: list[str] = []
+    # Every rule checked, in order, so the form can show passes as well as failures.
+    rule_checks: list[EligibilityRuleCheck] = []
     estimated_emi: float
     max_affordable_emi: float
     # Filled in when we can suggest a fix.

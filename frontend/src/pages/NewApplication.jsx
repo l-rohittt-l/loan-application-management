@@ -2,15 +2,22 @@
 // eligibility check (D-01), then submit. A failed eligibility check warns
 // and explains; it never blocks, because the server's rule is advisory too.
 //
-// Piece 18 reshaped this page. It used to be one long stack of inputs with no
-// sense of where you were. It is now three labelled sections — who is applying,
-// the loan, and why — so the form reads like a conversation rather than a pile
-// of boxes. Every field states its rule quietly until it is broken.
+// Piece 18 reshaped this page into three labelled sections — who is applying,
+// the loan, and why — so the form reads like a conversation rather than a
+// pile of boxes.
 //
-// The eligibility panel beside it still works exactly as before. Making the
-// check run on its own, and the assessment card that goes with it, is Piece 19.
+// Piece 19 makes the check run on its own: once applicant, loan type, amount
+// and tenure are all individually valid, it fires 600ms after typing stops,
+// so it does not ask the server on every keystroke. The result panel became
+// a proper assessment card — every rule shown as a passed or failed row, not
+// only the failures — and submitting while not eligible opens a decision
+// modal instead of an inline warning, because "go back, or submit anyway" is
+// exactly what a modal is for. The server always runs its own copy of this
+// same assessment again at the moment of submission and stores it permanently
+// on the application (see `eligibility_service.assess` in the backend) — this
+// panel is a preview of that, not a substitute for it.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { api, errorMessage } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
@@ -18,6 +25,7 @@ import ErrorBanner from "../components/ErrorBanner";
 import Spinner from "../components/Spinner";
 import Button from "../components/ui/Button";
 import Icon from "../components/ui/Icon";
+import Modal from "../components/ui/Modal";
 import { label, rupees } from "../utils/format";
 import {
   AMOUNT_LIMITS, LOAN_TYPES, TENURE_LIMITS,
@@ -52,8 +60,11 @@ export default function NewApplication() {
   const [error, setError] = useState("");
   const [check, setCheck] = useState(null);           // the eligibility answer
   const [checkedFor, setCheckedFor] = useState("");   // which inputs the answer is for
+  const [checking, setChecking] = useState(false);    // the automatic check is in flight
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [confirmOpen, setConfirmOpen] = useState(false);   // "submit anyway" decision
+  const debounceRef = useRef(null);
 
   useEffect(() => {
     const load = isApplicant
@@ -83,32 +94,54 @@ export default function NewApplication() {
   });
   const fingerprint = () => JSON.stringify(payload());
 
-  async function runCheck() {
-    if (!validate()) return null;
-    setBusy(true);
-    setError("");
+  // The three fields eligibility actually needs, checked without touching the
+  // `errors` state — that state is reserved for what the user has actually
+  // tried to submit, not for gating a background check that runs quietly.
+  function fieldsReadyForAutoCheck() {
+    if (!form.applicant_id) return false;
+    return (
+      !checkAmount(form.amount_requested, form.loan_type) &&
+      !checkTenure(form.tenure_months, form.loan_type)
+    );
+  }
+
+  async function runCheck({ quiet = false } = {}) {
+    if (!quiet && !validate()) return null;
+    quiet ? setChecking(true) : setBusy(true);
+    if (!quiet) setError("");
     try {
       const res = await api.post("/applications/check-eligibility", payload());
       setCheck(res.data);
       setCheckedFor(fingerprint());
       return res.data;
     } catch (err) {
-      setError(errorMessage(err));
+      if (!quiet) setError(errorMessage(err));
       return null;
     } finally {
-      setBusy(false);
+      quiet ? setChecking(false) : setBusy(false);
     }
   }
+
+  // Fire the check on its own, 600ms after the relevant fields stop changing.
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!fieldsReadyForAutoCheck()) return;
+    if (checkedFor === fingerprint()) return;   // already have this exact answer
+    debounceRef.current = setTimeout(() => runCheck({ quiet: true }), 600);
+    return () => clearTimeout(debounceRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.applicant_id, form.loan_type, form.amount_requested, form.tenure_months]);
 
   async function submit(force = false) {
     if (!validate()) return;
     // Always check first. If the answer is "not eligible" and the user has not
-    // said "submit anyway", stop here and show the reasons.
+    // said "submit anyway", open the decision modal instead of going further.
     let result = checkedFor === fingerprint() ? check : null;
     if (!result) result = await runCheck();
     if (!result) return;
-    if (!result.eligible && !force) return;
+    if (!result.eligible && !force) { setConfirmOpen(true); return; }
 
+    setConfirmOpen(false);
     setBusy(true);
     setError("");
     try {
@@ -244,25 +277,41 @@ export default function NewApplication() {
             </div>
 
             <div className="form-actions">
-              <Button type="button" icon="shield" loading={busy} onClick={runCheck}>Check eligibility</Button>
+              <Button type="button" icon="shield" loading={busy && !checking} onClick={() => runCheck()}>Check again</Button>
               <Button type="submit" variant="primary" loading={busy}>Submit application</Button>
             </div>
           </form>
         </div>
 
         <div>
-          {check && (
+          {check ? (
             <div className="card">
-              <h2 style={{ marginTop: 0 }}>{check.eligible ? "Looks good" : "Not eligible as entered"}</h2>
+              <h2 style={{ marginTop: 0 }}>
+                {check.eligible ? "Looks eligible" : "Not eligible as entered"}
+                {checking && <span className="muted" style={{ fontWeight: 400, fontSize: "0.8rem" }}> — rechecking…</span>}
+              </h2>
               <dl className="kv">
                 <dt>Estimated EMI</dt><dd className="num">{rupees(check.estimated_emi)} / month</dd>
                 <dt>Room for EMIs</dt><dd className="num">{rupees(check.max_affordable_emi)} / month</dd>
               </dl>
+
+              {/* Every rule checked, passed or failed — seeing seven green
+                  rows and one red one is far more convincing than one line
+                  of red text. */}
+              <ul className="checklist" style={{ marginTop: "0.75rem" }}>
+                {check.rule_checks.map((row, i) => (
+                  <li key={i} className={row.passed ? "rule-pass" : "rule-fail"}>
+                    <Icon name={row.passed ? "check" : "close"} size={14} />
+                    <span>{row.label}</span>
+                  </li>
+                ))}
+              </ul>
               {check.problems.length > 0 && (
-                <ul>
+                <ul style={{ marginTop: "0.5rem" }}>
                   {check.problems.map((p, i) => <li key={i}>{p}</li>)}
                 </ul>
               )}
+
               {(check.suggested_amount || check.suggested_tenure_months) && (
                 <div className="chips" style={{ marginTop: "0.5rem" }}>
                   {check.suggested_amount && (
@@ -277,25 +326,14 @@ export default function NewApplication() {
                   )}
                 </div>
               )}
-              {!check.eligible && (
-                <>
-                  <div className="banner banner-warn" style={{ marginTop: "1rem", marginBottom: 0 }}>
-                    <span>You can still submit, but it is likely to be rejected or sent back for more information.</span>
-                  </div>
-                  <Button variant="danger" style={{ marginTop: "0.75rem" }} loading={busy} onClick={() => submit(true)}>
-                    Submit anyway
-                  </Button>
-                </>
-              )}
             </div>
-          )}
-          {!check && (
+          ) : (
             <div className="card">
-              <h2 style={{ marginTop: 0 }}>Before you submit</h2>
+              <h2 style={{ marginTop: 0 }}>{checking ? "Checking…" : "Before you submit"}</h2>
               <p className="muted">
-                Check eligibility to see the estimated EMI and whether the amount,
-                tenure, income, credit score and age fit the bank's rules for this
-                loan type.
+                {checking
+                  ? "Running the eligibility check against the bank's rules."
+                  : "Fill in the applicant, loan type, amount and tenure — the check runs on its own once they look valid."}
               </p>
               <ul className="checklist">
                 {["Tenure and amount for this loan type", "Income and CIBIL score",
@@ -307,6 +345,30 @@ export default function NewApplication() {
           )}
         </div>
       </div>
+
+      <Modal
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        tone="warn"
+        title="Submit even though it is not eligible?"
+        subtitle={`${check?.rule_checks?.filter((r) => !r.passed).length ?? 0} of ${check?.rule_checks?.length ?? 0} rules did not pass`}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setConfirmOpen(false)}>Go back and adjust</Button>
+            <Button variant="danger" loading={busy} onClick={() => submit(true)}>Submit anyway</Button>
+          </>
+        }
+      >
+        <p>
+          The bank's own rules say this application is likely to be rejected or sent
+          back for more information. It will still be recorded and sent for review —
+          the reasons below are saved with it so the reviewer sees exactly what did
+          not pass:
+        </p>
+        <ul>
+          {check?.problems?.map((p, i) => <li key={i}>{p}</li>)}
+        </ul>
+      </Modal>
     </>
   );
 }

@@ -78,6 +78,7 @@ export default function ApplicationDetail() {
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState(null);   // a status awaiting confirmation
   const [chosen, setChosen] = useState(null);           // an activity row open in the popup
+  const [showEligibility, setShowEligibility] = useState(false);   // Piece 19 panel, closed by default
 
   const load = useCallback(async () => {
     try {
@@ -212,6 +213,32 @@ export default function ApplicationDetail() {
                 <dt>Existing EMIs</dt>
                 <dd className="num"><Money value={app.applicant.existing_monthly_emi} suffix=" / month" /></dd>
               </dl>
+            </div>
+          )}
+
+          {/* Piece 19: the server's own eligibility assessment, taken at the
+              moment of submission and never changed afterwards — a permanent
+              record of what the bank knew and what its rules said. */}
+          {app.eligibility_summary && (
+            <div className="card">
+              <div className="card-head">
+                <h2>Eligibility at submission</h2>
+                <span className={app.eligibility_passed ? "pill pill-ok" : "pill pill-warn"}>
+                  {app.eligibility_passed ? "Passed" : "Did not pass"}
+                </span>
+              </div>
+              <p className="muted" style={{ marginTop: 0 }}>
+                Assessed automatically by the server when this application was submitted
+                {app.eligibility_checked_at ? `, on ${formatDateTime(app.eligibility_checked_at)}` : ""}.
+                This is the bank's own record, separate from anything shown to the applicant
+                while filling in the form.
+              </p>
+              <Button size="sm" variant="ghost" onClick={() => setShowEligibility((v) => !v)}>
+                {showEligibility ? "Hide the full assessment" : "Show the full assessment"}
+              </Button>
+              {showEligibility && (
+                <pre className="eligibility-summary">{app.eligibility_summary}</pre>
+              )}
             </div>
           )}
 

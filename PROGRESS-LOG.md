@@ -39,6 +39,16 @@ Newest entries at the top. Short on purpose.
 
 ## The log
 
+## 2026-09-06 — Session 33: Piece 19, and an unattended run through to Phase 5
+
+**Asked for:** Rohit is away from the keyboard. He asked for everything left to be built in one continuous run: Piece 19, then Phase 3's tests (written but never run), then Phase 4, then Phase 5, then the Manager's Morning Briefing, then an honest report — deciding things myself where he would normally be asked, and writing those decisions down instead of waiting.
+**Built:** Piece 19 first. The server now runs its own eligibility assessment the moment an application is submitted, and stores it permanently: three new columns on `loan_applications`, a small migration so the existing database picks them up without losing data, and one shared `assess()` function so the advisory check and the stored record can never quietly disagree. The form now checks itself 600ms after you stop typing, shows every rule as a passed or failed row instead of only the failures, and asks a real question — "submit anyway?" — in a popup rather than a line of orange text. The application page shows the bank's own stored note in a panel that opens on request. Streamlit got the same treatment. Verified by actually driving the form in a browser as the loan officer: filled in Priya Sharma's example from this plan, watched the check fire on its own, watched the "not eligible" popup appear, submitted anyway, and read the stored note back on the application page — it matched the plan almost word for word.
+**Found:** nothing broke. All 20 of the trainer's Phase 1 tests still pass (27 runs), plus 3 new tests for the stored summary and the existing ones for search and timestamps — 40 in total.
+**Realised:** the biggest risk in this piece wasn't the eligibility logic, it was the database migration — `Base.metadata.create_all()` never adds a column to a table that already exists, so without the small `ALTER TABLE` step the real `loan_app.db` would have kept the old shape and every read of the new fields would have raised "no such column" the first time someone opened an old application.
+**Next:** Phase 3 — run the tests that exist but have never been checked, then inspect the phase properly rather than trusting a green summary line.
+
+---
+
 ## 2026-09-06 — Session 32: Phase 2 actually finished, and a full plan to the end
 
 **Asked for:** Rohit gave me the LangSmith key, said to stop asking him things and decide like a professional, and switched on plan mode so the run to Phase 5 got planned properly rather than built ad hoc. He also said plainly: don't half-build it, and don't let me find bad implementations later like we did in Phase 1.
