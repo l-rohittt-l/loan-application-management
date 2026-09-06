@@ -41,6 +41,7 @@ export default function Layout() {
   const links = [
     { to: "/applications", text: isApplicant ? "My applications" : "Applications", icon: "applications", show: true },
     { to: "/applications/new", text: isApplicant ? "Apply for a loan" : "New application", icon: "plus", show: true },
+    { to: "/assistant", text: "Assistant", icon: "shield", show: true },
     { to: "/dashboard", text: "Dashboard", icon: "dashboard", show: isStaff },
     { to: "/activity", text: "Activity", icon: "activity", show: isManager },
     { to: "/profile", text: "My profile", icon: "user", show: isApplicant },

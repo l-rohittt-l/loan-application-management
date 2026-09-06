@@ -14,6 +14,7 @@ import NewApplicant from "./pages/NewApplicant";
 import Dashboard from "./pages/Dashboard";
 import Activity from "./pages/Activity";
 import MyProfile from "./pages/MyProfile";
+import Assistant from "./pages/Assistant";
 
 // Wraps pages that need a login. `roles` narrows it further.
 function RequireAuth({ roles, children }) {
@@ -47,6 +48,7 @@ export default function App() {
           <Route path="/signup" element={<PublicOnly><ApplicantSignup /></PublicOnly>} />
 
           <Route element={<RequireAuth><Layout /></RequireAuth>}>
+            <Route path="/assistant" element={<Assistant />} />
             <Route path="/applications" element={<ApplicationList />} />
             <Route path="/applications/new" element={<NewApplication />} />
             <Route path="/applications/:id" element={<ApplicationDetail />} />

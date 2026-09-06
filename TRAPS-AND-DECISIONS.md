@@ -94,6 +94,22 @@ Fix: a shared `UtcDateTime` type in `schemas/common.py` that stamps naive databa
 
 ### From building the list (2026-09-06)
 
+**T-60 · Windows lets two servers bind port 8000, and the stale one answers.** A sharper version of T-40. After adding the chat route, `/api/v1/chat` was missing from `openapi.json` even though `main.py` clearly included the router and a fresh `TestClient` served it fine. The cause: `netstat` showed **two** processes LISTENING on 127.0.0.1:8000. An earlier uvicorn had survived a `Stop-Process`, a second one started alongside it, and requests were being answered by the old one. On Linux the second bind would simply fail; Windows allows it.
+
+The check, whenever the API behaves like yesterday's code:
+
+```bash
+netstat -ano | grep ":8000" | grep LISTENING     # more than one line is the bug
+```
+
+Kill every uvicorn before starting one:
+
+```powershell
+Get-CimInstance Win32_Process -Filter "Name='python.exe'" |
+  Where-Object { $_.CommandLine -like '*uvicorn*' } |
+  ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
+```
+
 **T-40 · A backend running without `--reload` makes new code look broken.** Found while testing Piece 18. The server had been left running from an earlier session as `python -m uvicorn app.main:app --host 127.0.0.1 --port 8000` — no `--reload`, and using the machine's Python rather than the project's virtual environment. So every new query parameter was silently ignored: a search returned every row, and a deliberately invalid sort column answered 200 instead of the 400 the new code raises. Nothing was wrong with the code at all.
 
 The quick way to tell, before doubting the code: open `http://localhost:8000/openapi.json` and look at whether the parameters you just added are listed. If they are not, the running server is old. Start it the way the README says, from `backend/`:
