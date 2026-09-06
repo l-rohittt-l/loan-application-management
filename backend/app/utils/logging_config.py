@@ -12,7 +12,9 @@ the middleware binds request_id, method and path into "contextvars", and
 """
 
 import logging
+import logging.handlers
 import sys
+from pathlib import Path
 
 import structlog
 
@@ -52,3 +54,21 @@ def configure_logging() -> None:
     )
     # SQLAlchemy is chatty at INFO; keep it to warnings unless debugging.
     logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
+
+    # Also write every line to a file.
+    #
+    # Without this, the log only exists in whichever terminal window happens to
+    # be running the server, and it disappears the moment that window closes.
+    # That would make the reference number shown in the app useless the day
+    # after something went wrong — which is exactly when someone asks about it.
+    #
+    # Keeps the last 5 files of 5 MB each, then starts overwriting the oldest,
+    # so it can never fill the disk.
+    if settings.log_to_file:
+        log_dir = Path(settings.log_dir)
+        log_dir.mkdir(parents=True, exist_ok=True)
+        file_handler = logging.handlers.RotatingFileHandler(
+            log_dir / "app.log", maxBytes=5_000_000, backupCount=5, encoding="utf-8",
+        )
+        file_handler.setFormatter(logging.Formatter("%(message)s"))
+        logging.getLogger().addHandler(file_handler)

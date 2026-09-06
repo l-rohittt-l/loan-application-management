@@ -34,6 +34,10 @@ backend/chroma_db/
 results/
 backend/results/
 
+# ---- Server logs --------------------------------------------------------
+logs/
+backend/logs/
+
 # ---- Node / React -------------------------------------------------------
 node_modules/
 frontend/node_modules/

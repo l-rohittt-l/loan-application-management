@@ -23,4 +23,5 @@ class ActivityLogResponse(BaseModel):
     entity_id: int | None = None
     details: str | None = None
     request_id: str | None = None
+    ip_address: str | None = None
     created_at: UtcDateTime | None = None

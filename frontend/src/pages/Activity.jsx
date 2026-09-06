@@ -116,8 +116,8 @@ export default function Activity() {
           <input
             value={filters.actor_id}
             onChange={set("actor_id")}
-            placeholder="Search by person or AI agent…"
-            aria-label="Search by person or AI agent"
+            placeholder="Search a person or AI agent — part of a name is enough"
+            aria-label="Search a person or AI agent"
           />
         </div>
         <label>
@@ -294,15 +294,28 @@ export default function Activity() {
             <Details raw={chosen.details} />
 
             <hr className="divider" />
-            <h3>For support</h3>
-            <dl className="kv">
-              <dt>Reference</dt>
-              <dd className="mono">{chosen.request_id || "not recorded"}</dd>
-            </dl>
-            <p className="hint">
-              Quote this reference if you ever need a developer to trace exactly what
-              the system did during this event.
-            </p>
+            <h3>If something looked wrong</h3>
+            {chosen.request_id ? (
+              <>
+                <dl className="kv">
+                  <dt>Reference</dt>
+                  <dd className="mono">{chosen.request_id}</dd>
+                  {chosen.ip_address && (<><dt>Came from</dt><dd className="mono">{chosen.ip_address}</dd></>)}
+                </dl>
+                <p className="hint">
+                  Every step the system took while handling this one action was recorded
+                  against this reference — who was signed in, what was sent, how long each
+                  part took, and the full error if anything failed. Give this reference to
+                  a developer and they can pull up exactly those records, instead of
+                  searching through everything that happened that day.
+                </p>
+              </>
+            ) : (
+              <p className="muted" style={{ margin: 0 }}>
+                No reference, because this event did not come from someone using the app.
+                It was created directly by the demo setup script.
+              </p>
+            )}
           </>
         )}
       </Modal>

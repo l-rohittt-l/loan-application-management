@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     app_env: str = "development"
     debug: bool = True
     log_level: str = "INFO"
+    # Keep a copy of the log on disk, so a reference number can still be looked
+    # up tomorrow. Off during tests, where it would only make noise.
+    log_to_file: bool = True
+    log_dir: str = "logs"
 
     # ---- Program identity, goes into every log line ----
     poc_id: str = "POC-01"

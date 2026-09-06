@@ -13,6 +13,8 @@ import os
 # Keep the test output readable: no span dumps. Must be set before app.main
 # is imported, because settings are read at import time.
 os.environ.setdefault("OTEL_EXPORTER", "none")
+# Tests should not leave log files behind.
+os.environ.setdefault("LOG_TO_FILE", "false")
 
 import pytest                                        # noqa: E402
 from fastapi.testclient import TestClient            # noqa: E402

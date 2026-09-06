@@ -34,7 +34,9 @@ class ActivityListResponse(BaseModel):
 def list_activity(
     page: int = Query(1, ge=1),
     limit: int = Query(50, ge=1, le=200),
-    actor_id: str | None = Query(None, max_length=150, description="A person's email or an AI agent's name"),
+    actor_id: str | None = Query(None, max_length=150,
+                                 description="Part of a person's email or an AI agent's name. "
+                                             "Case does not matter, and it also matches who an AI acted for."),
     actor_type: ActorType | None = Query(None, description="human or ai"),
     action: str | None = Query(None, max_length=60),
     entity_type: str | None = Query(None, max_length=40),

@@ -39,6 +39,16 @@ Newest entries at the top. Short on purpose.
 
 ## The log
 
+## 2026-09-06 — Session 29: Sticky headings, real search, and making the reference number honest
+
+**Asked for:** table headings that stay put when scrolling, an explanation of what a developer would actually do with the reference number in the activity popup, and search that works on part of a name instead of the whole email.
+**Built:** column headings now stick to the top of the window on the applications and activity tables, and step aside on narrow screens where the table scrolls sideways instead. Search is now partial and ignores capitals, and also matches who an AI was acting for, so "anita" finds anita@bank.com. The server now writes its log to `backend/logs/app.log` as well as the terminal.
+**Found:** the reference number was not broken. 41 of 99 rows had one; the 58 without were all created by the demo setup script, which calls the code directly with no web request involved, so there is genuinely nothing to reference. But the popup said "not recorded", which reads like a failure. It now explains why instead. The real gap was elsewhere: the log only lived in the terminal window and vanished when it closed, so a reference from yesterday was useless. That is what the log file fixes.
+**Realised:** Rohit's question was the right one to ask. The feature looked complete but only half worked, and the missing half was invisible until someone asked what it was for. Proved the whole flow end to end and wrote it up in `LEARNING-NOTES.md`.
+**Next:** Pieces 18 and 19 — the applications list, the form, and the eligibility summary stored on each application.
+
+---
+
 ## 2026-09-06 — Session 28: A real time bug, the dashboard, and the activity page
 
 **Asked for:** Rohit found three things while using the app — the dashboard was not properly built, the times shown were not real, and the activity page still showed raw data in its details column.

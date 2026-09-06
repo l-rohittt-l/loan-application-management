@@ -13,6 +13,7 @@ together or not at all.
 import json
 
 from fastapi import Request
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from app.models.activity_log import ActivityLog, ActorType
@@ -67,7 +68,17 @@ def list_activity(
 
     query = db.query(ActivityLog)
     if actor_id:
-        query = query.filter(ActivityLog.actor_id == actor_id.lower())
+        # Searching for a person should not mean typing their whole email.
+        # "anita" finds anita@bank.com, and capital letters do not matter.
+        # It also looks at who an AI was acting for, so searching a person's
+        # name finds work an assistant did on their behalf.
+        term = f"%{actor_id.strip().lower()}%"
+        query = query.filter(
+            or_(
+                func.lower(ActivityLog.actor_id).like(term),
+                func.lower(ActivityLog.on_behalf_of).like(term),
+            )
+        )
     if actor_type:
         query = query.filter(ActivityLog.actor_type == actor_type)
     if action:

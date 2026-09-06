@@ -44,6 +44,37 @@ Python, JavaScript and most libraries default to the Western style. Any app for 
 
 ---
 
+## What a request reference number is actually for
+
+Every time anyone clicks something in the app, the server gives that one click a random reference, like `req_444adf97626543ee`. Every log line the server writes while handling that click carries the same reference. The activity log stores it too, which is why it appears in the app.
+
+**Why it matters:** a busy bank server writes millions of log lines a day, all jumbled together from hundreds of people using the app at once. Without a reference, finding the lines for one particular action means guessing from a rough time and a username, and reading through everything else that happened in that window.
+
+**The flow it enables:**
+
+1. A loan officer says "I approved application 6 yesterday and something looked wrong."
+2. The manager opens Activity, finds that event, clicks View, and reads out the reference.
+3. A developer searches the log for that one string.
+4. They immediately get every step of that single click, and nothing else.
+
+Here is a real trace from our own app:
+
+```
+07:27:35.401  request_started     PATCH /api/v1/applications/6/status
+07:27:35.404  token_validated     user_email=rajan@bank.com
+07:27:35.417  status_updated      application_id=6  submitted -> under_review
+                                  changed_by=rajan@bank.com  duration_ms=10
+07:27:35.418  request_completed   status_code=200  duration_ms=16
+```
+
+Four lines, pulled out of thousands, showing who did it, what changed, how long it took, and that it succeeded. If it had crashed instead, the error and the exact line of code that failed would sit in the same group.
+
+**The catch, and why it matters:** this only works if the log is actually kept somewhere. Until we fixed it, our log only existed in the terminal window running the server and vanished when that window closed — so a reference from yesterday was useless. Now the server also writes to `backend/logs/app.log`, keeping the last 5 files of 5 MB each.
+
+This idea is standard in real systems and goes by names like *correlation ID* or *trace ID*.
+
+---
+
 ## Why banks never show customers their internal risk score
 
 When a bank scores your application, that score and the rules behind it stay inside the bank. Customers see the outcome, not the working.
