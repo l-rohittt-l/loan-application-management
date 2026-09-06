@@ -1,4 +1,4 @@
-"""
+﻿"""
 Schema for the manager's activity view (D-11).
 """
 
@@ -7,6 +7,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict
 
 from app.models.activity_log import ActorType
+from app.schemas.common import UtcDateTime
 
 
 class ActivityLogResponse(BaseModel):
@@ -22,4 +23,4 @@ class ActivityLogResponse(BaseModel):
     entity_id: int | None = None
     details: str | None = None
     request_id: str | None = None
-    created_at: datetime | None = None
+    created_at: UtcDateTime | None = None

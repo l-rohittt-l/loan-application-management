@@ -86,6 +86,12 @@ No decision needed. These break something quietly if forgotten.
 
 **T-38 · The trainer's five status colours cannot be used in a pie chart.** Ran them through a colour-accessibility validator against a white surface. Side by side as bars, only one pair is weak: green and red measure ΔE 5.0 apart for a viewer with red-green colour blindness, which a written label beside each bar fully mitigates. But in a pie or donut every colour sits against every other, and there the numbers collapse: **purple vs blue measure ΔE 0.4 under red-green colour blindness** (indistinguishable), and **red vs orange measure ΔE 8.7 with normal colour vision** (below the 15 floor — hard for anyone). So the pipeline chart is horizontal bars with written labels, never a pie. Loan type uses a single blue shade instead, because on that chart colour means quantity, not identity. Worth saying out loud in the demo if accessibility comes up.
 
+**T-39 · Every date and time in the app was 5 hours 30 minutes early.** Found by Rohit on 2026-09-06, and it was real. SQLite records `CURRENT_TIMESTAMP` in **UTC** and hands it back as a plain date and time with nothing saying so — `DateTime(timezone=True)` does not change this, because SQLite has no timezone support. The API passed that straight out as `2026-09-05T20:13:55`, and a browser reads a string with no timezone marker as *the reader's own local time*. In India that showed the wrong day, in the evening instead of the small hours.
+
+Fix: a shared `UtcDateTime` type in `schemas/common.py` that stamps naive database times as UTC on the way out, so the API now sends `2026-09-05T20:13:55Z`. The browser converts that to real local time, and the app is also correct for a reader in another country. Guarded by `tests/ours/test_timestamps.py`, including a test that the recorded time is actually within a minute of now.
+
+**Watch for this again in Phase 2 onwards:** any new response field holding a time must use `UtcDateTime`, not `datetime`.
+
 ### From the mentor chats
 
 **T-09 · Streamlit was overruled, but not replaced.** The Phase 2–4 tests check Streamlit; the demo runs React. Build both. Chat logic lives in the backend, both front-ends are thin screens.

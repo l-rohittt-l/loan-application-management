@@ -1,4 +1,4 @@
-"""
+﻿"""
 Schemas for documents.
 
 `CreateDocumentSchema` is a name the trainer's tests import (T-06).
@@ -9,7 +9,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models.document import DocumentType
-from app.schemas.common import check_file_name
+from app.schemas.common import UtcDateTime, check_file_name
 
 
 class CreateDocumentSchema(BaseModel):
@@ -41,7 +41,7 @@ class DocumentResponse(BaseModel):
     application_id: int
     doc_type: DocumentType
     file_name: str
-    uploaded_at: datetime | None = None
+    uploaded_at: UtcDateTime | None = None
     verified: bool
 
 

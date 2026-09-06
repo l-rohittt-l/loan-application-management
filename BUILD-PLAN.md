@@ -671,8 +671,10 @@ Split into five pieces so each one can be read and changed before the next start
 | ~~17~~ | ~~The design system~~ | **Done 2026-09-06.** Tag `v0.1.1`. |
 | **18** | Applications list + new application form | Both look basic; filters are cramped |
 | **19** | Automatic eligibility + stored summary | Eligibility is manual and minimal; nothing is recorded |
-| **20** | Dashboard | Needs real charts |
-| **21** | Activity page | Details are a raw data dump; toolbar is crowded |
+| ~~20~~ | ~~Dashboard~~ | **Done 2026-09-06.** Tag `v0.1.2`. |
+| ~~21~~ | ~~Activity page~~ | **Done 2026-09-06.** Tag `v0.1.2`. |
+
+Pieces 20 and 21 were brought forward because Rohit hit them while using the app. Pieces 18 and 19 (the list, the form, and the stored eligibility summary) are still to do.
 
 ---
 

@@ -39,6 +39,16 @@ Newest entries at the top. Short on purpose.
 
 ## The log
 
+## 2026-09-06 — Session 28: A real time bug, the dashboard, and the activity page
+
+**Asked for:** Rohit found three things while using the app — the dashboard was not properly built, the times shown were not real, and the activity page still showed raw data in its details column.
+**Built:** the timezone fix, the dashboard (Piece 20) and the activity page (Piece 21).
+**Found:** the time complaint was a genuine bug, and a bad one. Every date and time in the app was **5 hours 30 minutes early**. SQLite records times in UTC and hands them back with nothing marking them as UTC, so the browser read them as local time. Proved it by comparing the machine clock, the stored value and what a browser makes of it. Fixed by sending times with a `Z` on the end, and covered by three new tests in `tests/ours/`. Written up as T-39.
+**Realised:** the dashboard was not broken, it simply had not been built yet — Rohit was looking at the old plain version. Worth saying plainly rather than letting him think something had failed.
+**Next:** Pieces 18 and 19 — the applications list, the form, and the eligibility summary stored on each application.
+
+---
+
 ## 2026-09-06 — Session 27: Piece 17, the design system
 
 **Asked for:** build the design system, after Rohit chose bars over pie charts.

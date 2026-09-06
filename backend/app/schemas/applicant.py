@@ -1,4 +1,4 @@
-"""
+﻿"""
 Schemas for the borrower profile.
 
 `CreateApplicantSchema` is a name the trainer's tests import (T-06).
@@ -9,7 +9,7 @@ from datetime import date, datetime
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from app.models.applicant import EmploymentStatus
-from app.schemas.common import check_date_of_birth, check_name, check_phone
+from app.schemas.common import UtcDateTime, check_date_of_birth, check_name, check_phone
 
 
 class CreateApplicantSchema(BaseModel):
@@ -45,4 +45,4 @@ class ApplicantResponse(BaseModel):
     date_of_birth: date | None
     years_with_employer: float | None
     existing_monthly_emi: float
-    created_at: datetime | None = None
+    created_at: UtcDateTime | None = None

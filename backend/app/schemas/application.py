@@ -1,4 +1,4 @@
-"""
+﻿"""
 Schemas for loan applications.
 
 `CreateApplicationSchema` is a name the trainer's tests import (T-06).
@@ -15,6 +15,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from app.domain import rules
 from app.models.application import ApplicationStatus, LoanType
 from app.schemas.applicant import ApplicantResponse
+from app.schemas.common import UtcDateTime
 from app.schemas.document import DocumentResponse
 
 
@@ -39,7 +40,7 @@ class StatusHistoryResponse(BaseModel):
     old_status: ApplicationStatus | None
     new_status: ApplicationStatus
     changed_by: str
-    changed_at: datetime | None = None
+    changed_at: UtcDateTime | None = None
     remarks: str | None = None
 
 
@@ -54,8 +55,8 @@ class ApplicationResponse(BaseModel):
     tenure_months: int
     purpose: str
     status: ApplicationStatus
-    submitted_at: datetime | None = None
-    updated_at: datetime | None = None
+    submitted_at: UtcDateTime | None = None
+    updated_at: UtcDateTime | None = None
     applicant: ApplicantResponse | None = None
     status_history: list[StatusHistoryResponse] = []
     documents: list[DocumentResponse] = []
@@ -72,7 +73,7 @@ class ApplicationSummary(BaseModel):
     amount_requested: float
     tenure_months: int
     status: ApplicationStatus
-    submitted_at: datetime | None = None
+    submitted_at: UtcDateTime | None = None
 
 
 class ApplicationListResponse(BaseModel):

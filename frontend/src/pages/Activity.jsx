@@ -1,74 +1,311 @@
-// The manager's activity view (D-11): who did what, human or AI, with filters.
+// The manager's record of everything that has happened (D-11).
+//
+// This page used to show the stored details as raw data — a line of JSON in a
+// table cell. That is fine for a developer reading a log file and wrong for a
+// bank manager reading an app. Now each row reads as a sentence, and "View"
+// opens the full story laid out properly.
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, errorMessage } from "../api/client";
 import ErrorBanner from "../components/ErrorBanner";
 import Spinner from "../components/Spinner";
-import { formatDateTime, label } from "../utils/format";
+import Button from "../components/ui/Button";
+import EmptyState from "../components/ui/EmptyState";
+import Icon from "../components/ui/Icon";
+import Modal from "../components/ui/Modal";
+import { formatDateTime, label, rupees } from "../utils/format";
+
+// Plain words and an icon for each kind of event, instead of the stored name.
+const ACTIONS = {
+  staff_registered:    { text: "Staff account created",     icon: "user" },
+  applicant_signed_up: { text: "Customer signed up",        icon: "user" },
+  login_succeeded:     { text: "Signed in",                 icon: "shield" },
+  login_failed:        { text: "Sign-in failed",            icon: "alert" },
+  applicant_created:   { text: "Borrower profile created",  icon: "user" },
+  application_submitted: { text: "Application submitted",   icon: "file" },
+  status_changed:      { text: "Status changed",            icon: "activity" },
+  document_added:      { text: "Document added",            icon: "file" },
+  document_verified:   { text: "Document verified",         icon: "check" },
+  eligibility_checked: { text: "Eligibility checked",       icon: "shield" },
+  dashboard_viewed:    { text: "Dashboard viewed",          icon: "dashboard" },
+};
+const describe = (action) => ACTIONS[action] || { text: label(action), icon: "info" };
 
 const ENTITY_TYPES = ["application", "applicant", "document", "user"];
-const empty = { actor_id: "", actor_type: "", action: "", entity_type: "", entity_id: "", from_date: "", to_date: "" };
+const EMPTY = { actor_id: "", actor_type: "", action: "", entity_type: "", entity_id: "", from_date: "", to_date: "" };
+
+// Turn a stored detail key into something readable.
+const DETAIL_LABELS = {
+  from: "Changed from", to: "Changed to", remarks: "Remarks", reason: "Reason",
+  loan_type: "Loan type", amount: "Amount", tenure_months: "Tenure",
+  doc_type: "Document type", file_name: "File name", application_id: "Application",
+  eligible: "Passed eligibility", problem_count: "Rules not met", email: "Email",
+};
+
+function DetailValue({ name, value }) {
+  if (value === null || value === undefined || value === "") return <span className="muted">not recorded</span>;
+  if (typeof value === "boolean") return value ? <span className="tick">Yes</span> : <span className="cross">No</span>;
+  if (name === "amount") return rupees(value);
+  if (name === "tenure_months") return `${value} months`;
+  if (name === "from" || name === "to") return label(value);
+  if (name === "doc_type" || name === "loan_type") return label(value);
+  return String(value);
+}
+
+/** The stored details are a small piece of JSON. Show them as labelled rows. */
+function Details({ raw }) {
+  let parsed = null;
+  try { parsed = raw ? JSON.parse(raw) : null; } catch { parsed = null; }
+
+  if (!parsed || Object.keys(parsed).length === 0) {
+    return <p className="muted">Nothing further was recorded for this event.</p>;
+  }
+  return (
+    <dl className="kv">
+      {Object.entries(parsed).map(([key, value]) => (
+        <div key={key} style={{ display: "contents" }}>
+          <dt>{DETAIL_LABELS[key] || label(key)}</dt>
+          <dd><DetailValue name={key} value={value} /></dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
 
 export default function Activity() {
-  const [filters, setFilters] = useState(empty);
+  const [filters, setFilters] = useState(EMPTY);
   const [page, setPage] = useState(1);
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [showMore, setShowMore] = useState(false);
+  const [chosen, setChosen] = useState(null);   // the row open in the popup
   const limit = 50;
 
-  useEffect(() => {
+  const load = useCallback(() => {
+    setLoading(true);
     const params = { page, limit };
     for (const [k, v] of Object.entries(filters)) if (v) params[k] = v;
-    api.get("/activity", { params }).then((r) => { setData(r.data); setError(""); }).catch((err) => setError(errorMessage(err)));
+    api.get("/activity", { params })
+      .then((r) => { setData(r.data); setError(""); })
+      .catch((err) => setError(errorMessage(err)))
+      .finally(() => setLoading(false));
   }, [filters, page]);
 
-  const set = (f) => (e) => { setPage(1); setFilters({ ...filters, [f]: e.target.value }); };
+  useEffect(() => { load(); }, [load]);
+
+  const set = (field) => (e) => { setPage(1); setFilters({ ...filters, [field]: e.target.value }); };
   const pages = data ? Math.max(1, Math.ceil(data.total_count / limit)) : 1;
+  const activeFilters = useMemo(() => Object.values(filters).filter(Boolean).length, [filters]);
 
   return (
     <>
-      <div className="page-head"><h1>Activity</h1></div>
-      <div className="filters">
-        <label>Who<input value={filters.actor_id} onChange={set("actor_id")} placeholder="email or agent name" /></label>
-        <label>Kind<select value={filters.actor_type} onChange={set("actor_type")}><option value="">Any</option><option value="human">Human</option><option value="ai">AI</option></select></label>
-        <label>Action<input value={filters.action} onChange={set("action")} placeholder="e.g. status_changed" /></label>
-        <label>Record type<select value={filters.entity_type} onChange={set("entity_type")}><option value="">Any</option>{ENTITY_TYPES.map((t) => <option key={t} value={t}>{label(t)}</option>)}</select></label>
-        <label>Record id<input type="number" min={1} value={filters.entity_id} onChange={set("entity_id")} style={{ width: 100 }} /></label>
-        <label>From<input type="date" value={filters.from_date} onChange={set("from_date")} /></label>
-        <label>To<input type="date" value={filters.to_date} onChange={set("to_date")} /></label>
-        <button type="button" className="btn btn-ghost" onClick={() => { setPage(1); setFilters(empty); }}>Clear</button>
+      <div className="page-head">
+        <div>
+          <h1>Activity</h1>
+          <p className="sub">Everything that has happened, by people and by the AI assistants.</p>
+        </div>
       </div>
+
+      {/* Search on the left, the common filters next, the count and clear on the
+          right. The rarely-used ones hide behind "More filters" so the row is
+          no longer a crowd. Nothing was removed. */}
+      <div className="toolbar">
+        <div className="grow search">
+          <Icon name="search" size={16} />
+          <input
+            value={filters.actor_id}
+            onChange={set("actor_id")}
+            placeholder="Search by person or AI agent…"
+            aria-label="Search by person or AI agent"
+          />
+        </div>
+        <label>
+          Done by
+          <select value={filters.actor_type} onChange={set("actor_type")}>
+            <option value="">Anyone</option>
+            <option value="human">A person</option>
+            <option value="ai">An AI assistant</option>
+          </select>
+        </label>
+        <label>
+          Event
+          <select value={filters.action} onChange={set("action")}>
+            <option value="">Any event</option>
+            {Object.keys(ACTIONS).map((a) => (
+              <option key={a} value={a}>{ACTIONS[a].text}</option>
+            ))}
+          </select>
+        </label>
+        <div className="toolbar-right">
+          <Button size="sm" variant="ghost" icon="filter" onClick={() => setShowMore((v) => !v)}>
+            {showMore ? "Fewer filters" : "More filters"}
+          </Button>
+          {activeFilters > 0 && (
+            <Button size="sm" variant="ghost" onClick={() => { setPage(1); setFilters(EMPTY); }}>
+              Clear {activeFilters}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {showMore && (
+        <div className="toolbar" style={{ marginTop: "-0.35rem" }}>
+          <label>
+            From date
+            <input type="date" value={filters.from_date} onChange={set("from_date")} />
+          </label>
+          <label>
+            To date
+            <input type="date" value={filters.to_date} onChange={set("to_date")} />
+          </label>
+          <label>
+            Record type
+            <select value={filters.entity_type} onChange={set("entity_type")}>
+              <option value="">Any</option>
+              {ENTITY_TYPES.map((t) => <option key={t} value={t}>{label(t)}</option>)}
+            </select>
+          </label>
+          <label>
+            Record number
+            <input type="number" min={1} value={filters.entity_id} onChange={set("entity_id")} style={{ minWidth: 110 }} />
+          </label>
+        </div>
+      )}
+
       <ErrorBanner message={error} onClose={() => setError("")} />
-      {!data ? <Spinner /> : (
+
+      {loading && !data ? (
+        <Spinner text="Loading activity…" />
+      ) : (
         <>
           <div className="table-wrap">
-            <table>
-              <thead><tr><th>When</th><th>Who</th><th>Action</th><th>Record</th><th>Details</th><th>Request</th></tr></thead>
-              <tbody>
-                {data.items.length ? data.items.map((r) => (
-                  <tr key={r.id}>
-                    <td>{formatDateTime(r.created_at)}</td>
-                    <td>
-                      {r.actor_id}{r.actor_role && <span className="muted"> · {label(r.actor_role)}</span>}
-                      {r.actor_type === "ai" && <> <span className="pill pill-ai">AI</span>{r.on_behalf_of && <span className="muted"> for {r.on_behalf_of}</span>}</>}
-                    </td>
-                    <td>{label(r.action)}</td>
-                    <td>{r.entity_type ? `${label(r.entity_type)} #${r.entity_id}` : ""}</td>
-                    <td><code className="small">{r.details || ""}</code></td>
-                    <td><code className="small">{r.request_id || ""}</code></td>
+            <div className="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th style={{ width: 170 }}>When</th>
+                    <th>Who</th>
+                    <th>What happened</th>
+                    <th>Record</th>
+                    <th style={{ width: 70 }} />
                   </tr>
-                )) : <tr><td colSpan={6} className="muted">Nothing matches.</td></tr>}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {data?.items?.length ? data.items.map((row) => {
+                    const what = describe(row.action);
+                    return (
+                      <tr key={row.id} className="row-link" onClick={() => setChosen(row)}>
+                        <td>{formatDateTime(row.created_at)}</td>
+                        <td>
+                          <div className="row" style={{ gap: "0.4rem" }}>
+                            <span>{row.actor_id}</span>
+                            {row.actor_type === "ai" && <span className="pill pill-ai">AI</span>}
+                          </div>
+                          {row.actor_type === "ai" && row.on_behalf_of ? (
+                            <div className="muted" style={{ fontSize: "0.78rem" }}>for {row.on_behalf_of}</div>
+                          ) : row.actor_role ? (
+                            <div className="muted" style={{ fontSize: "0.78rem" }}>{label(row.actor_role)}</div>
+                          ) : null}
+                        </td>
+                        <td>
+                          <div className="row" style={{ gap: "0.45rem" }}>
+                            <Icon name={what.icon} size={15} className="muted" />
+                            <span>{what.text}</span>
+                          </div>
+                        </td>
+                        <td className="muted">
+                          {row.entity_type ? `${label(row.entity_type)} #${row.entity_id}` : "—"}
+                        </td>
+                        <td>
+                          <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); setChosen(row); }}>
+                            View
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  }) : (
+                    <tr>
+                      <td colSpan={5}>
+                        <EmptyState
+                          icon="activity"
+                          title="Nothing matches those filters"
+                          action={activeFilters > 0 && (
+                            <Button size="sm" onClick={() => { setPage(1); setFilters(EMPTY); }}>
+                              Clear filters
+                            </Button>
+                          )}
+                        >
+                          Try widening the search, or clear the filters to see everything.
+                        </EmptyState>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-          <div className="pager">
-            <span className="muted">{data.total_count} total</span>
-            <button type="button" className="btn btn-sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>‹ Prev</button>
-            <span>Page {page} of {pages}</span>
-            <button type="button" className="btn btn-sm" disabled={page >= pages} onClick={() => setPage(page + 1)}>Next ›</button>
-          </div>
+
+          {data?.items?.length > 0 && (
+            <div className="pager">
+              <span className="spacer">{data.total_count} event{data.total_count === 1 ? "" : "s"}</span>
+              <Button size="sm" icon="chevronLeft" disabled={page <= 1} onClick={() => setPage(page - 1)}>Prev</Button>
+              <span>Page {page} of {pages}</span>
+              <Button size="sm" disabled={page >= pages} onClick={() => setPage(page + 1)}>Next</Button>
+            </div>
+          )}
         </>
       )}
+
+      {/* The full story of one event. */}
+      <Modal
+        open={Boolean(chosen)}
+        onClose={() => setChosen(null)}
+        title={chosen ? describe(chosen.action).text : ""}
+        subtitle={chosen ? formatDateTime(chosen.created_at) : ""}
+        footer={<Button onClick={() => setChosen(null)}>Close</Button>}
+      >
+        {chosen && (
+          <>
+            <h3>Who did it</h3>
+            <dl className="kv">
+              <dt>{chosen.actor_type === "ai" ? "AI assistant" : "Person"}</dt>
+              <dd>
+                {chosen.actor_id}
+                {chosen.actor_type === "ai" && <span className="pill pill-ai" style={{ marginLeft: 6 }}>AI</span>}
+              </dd>
+              {chosen.actor_role && (<><dt>Role</dt><dd>{label(chosen.actor_role)}</dd></>)}
+              {chosen.on_behalf_of && (<><dt>Acting for</dt><dd>{chosen.on_behalf_of}</dd></>)}
+            </dl>
+
+            {chosen.entity_type && (
+              <>
+                <hr className="divider" />
+                <h3>What it was about</h3>
+                <dl className="kv">
+                  <dt>Record</dt>
+                  <dd>{label(chosen.entity_type)} #{chosen.entity_id}</dd>
+                </dl>
+              </>
+            )}
+
+            <hr className="divider" />
+            <h3>Details</h3>
+            <Details raw={chosen.details} />
+
+            <hr className="divider" />
+            <h3>For support</h3>
+            <dl className="kv">
+              <dt>Reference</dt>
+              <dd className="mono">{chosen.request_id || "not recorded"}</dd>
+            </dl>
+            <p className="hint">
+              Quote this reference if you ever need a developer to trace exactly what
+              the system did during this event.
+            </p>
+          </>
+        )}
+      </Modal>
     </>
   );
 }

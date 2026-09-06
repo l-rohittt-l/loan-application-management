@@ -1,4 +1,4 @@
-"""
+﻿"""
 Schemas for registering, signing up, and logging in.
 
 Two ways in (decision D-07):
@@ -12,7 +12,9 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from app.models.applicant import EmploymentStatus
 from app.models.user import UserRole
-from app.schemas.common import check_date_of_birth, check_name, check_password, check_phone
+from app.schemas.common import (
+    UtcDateTime, check_date_of_birth, check_name, check_password, check_phone,
+)
 
 
 class RegisterRequest(BaseModel):
@@ -69,4 +71,4 @@ class UserResponse(BaseModel):
     email: str
     role: UserRole
     is_active: bool
-    created_at: datetime | None = None
+    created_at: UtcDateTime | None = None

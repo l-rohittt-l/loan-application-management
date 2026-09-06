@@ -3,7 +3,10 @@ Small checks shared by several schemas, so each rule is written once.
 """
 
 import re
-from datetime import date
+from datetime import date, datetime, timezone
+from typing import Annotated
+
+from pydantic import PlainSerializer
 
 # Letters, spaces, dots, apostrophes and hyphens. Covers "Priya Sharma",
 # "A.C. Harish", "O'Brien". Must start with a letter.
@@ -11,6 +14,32 @@ _NAME_PATTERN = re.compile(r"^[A-Za-z][A-Za-z .'\-]{1,99}$")
 
 # Indian mobile: ten digits, first digit 6 to 9.
 _PHONE_PATTERN = re.compile(r"^[6-9]\d{9}$")
+
+
+# ---------------------------------------------------------------------------
+# Sending times to the browser
+# ---------------------------------------------------------------------------
+# SQLite has no real timezone support: it records what CURRENT_TIMESTAMP gives,
+# which is UTC, and hands it back as a plain date and time with nothing saying
+# so. If we pass that straight out, a browser sees "2026-09-05T20:13:55" and
+# assumes it is the reader's own local time. In India that shows every date and
+# time 5 hours 30 minutes early — the wrong day, in the evening instead of the
+# small hours.
+#
+# The fix is to say out loud that the value is UTC by ending it with "Z". The
+# browser then converts it to whatever local time the reader is actually in,
+# which is also what makes the app correct for someone in another country.
+
+
+def _as_utc_iso(value: datetime) -> str:
+    """Stamp a naive database time as UTC and write it in the standard format."""
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+# Use this instead of `datetime` on every field a response sends out.
+UtcDateTime = Annotated[datetime, PlainSerializer(_as_utc_iso, return_type=str, when_used="json")]
 
 
 def check_name(value: str) -> str:
