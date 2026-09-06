@@ -39,6 +39,16 @@ Newest entries at the top. Short on purpose.
 
 ## The log
 
+## 2026-09-06 — Session 26: Planning the UI overhaul
+
+**Asked for:** Rohit used the app as the manager and found the look plain across the board — no colour theme, basic navigation, cramped filters, a dull form, no real charts, and an activity page showing raw data instead of readable detail. He also wants the eligibility check to run automatically and to be permanently recorded on each application.
+**Built:** no code. A five-piece plan in `BUILD-PLAN.md` covering a design system, the list and form, automatic eligibility with a stored summary, the dashboard, and the activity page.
+**Found:** ran the trainer's five mandated status colours through a colour-accessibility validator. As bars they are fine with written labels, but in a **pie chart** purple and blue are indistinguishable to a colourblind viewer (ΔE 0.4) and red and orange are hard for everyone (ΔE 8.7). So the plan uses bars, not pie. Logged as T-38.
+**Realised:** I built all sixteen Phase 1 pieces without stopping, because Rohit once said "keep going". That was wrong — he wanted to co-build. Two new rules added: one piece per turn no matter what, and every reply must say which Claude model and effort to use next.
+**Next:** Rohit answers the pie-chart question, then Piece 17, the design system.
+
+---
+
 ## 2026-09-06 — Session 24: Phase 1 complete
 
 **Asked for:** keep going.

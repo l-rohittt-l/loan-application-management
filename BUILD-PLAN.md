@@ -660,6 +660,160 @@ frontend/
 
 ---
 
+# PHASE 1 POLISH — making the app look and feel like a real product
+
+Rohit used the app as the manager on 2026-09-06 and gave detailed feedback. Everything below comes from that. **None of this changes a rule or a test** — the backend already works and all 20 trainer tests pass. This is visual and interaction work on top, plus one small backend addition for the stored eligibility summary.
+
+Split into five pieces so each one can be read and changed before the next starts.
+
+| # | Piece | What it fixes |
+|---|---|---|
+| **17** | The design system | No colour theme; plain navigation. Everything else sits on this. |
+| **18** | Applications list + new application form | Both look basic; filters are cramped |
+| **19** | Automatic eligibility + stored summary | Eligibility is manual and minimal; nothing is recorded |
+| **20** | Dashboard | Needs real charts |
+| **21** | Activity page | Details are a raw data dump; toolbar is crowded |
+
+---
+
+## The colour problem, and what the evidence says
+
+The trainer fixed five colours in user story 09 and we cannot change them:
+`submitted` blue, `under_review` orange, `approved` green, `rejected` red, `disbursed` purple.
+
+That is five saturated colours already spoken for, spread right across the spectrum. So the app's own theme has to stay out of their way, or everything turns into noise.
+
+**I ran those five colours through a colour-accessibility validator** rather than guessing. The results decide two things in this plan:
+
+| Test | Result |
+|---|---|
+| Side-by-side bars, neighbouring colours only | **One failure:** green and red sit ΔE 5.0 apart for a viewer with red-green colour blindness (about 1 man in 12). Everything else passes. |
+| Every colour against every other, which is what a **pie chart** does | **Two failures:** purple vs blue measure **ΔE 0.4** under red-green colour blindness — effectively the same colour. Red vs orange measure ΔE 8.7 even with **normal** colour vision. |
+
+Plain reading: in a pie chart of statuses, a colourblind viewer cannot tell "submitted" from "disbursed" at all, and nobody can reliably tell "rejected" from "under review". In a bar chart, only one pair is weak, and a written label next to each bar fixes it completely.
+
+**So: bar charts for status, not a pie.** Not a style opinion — the numbers are above, and it is exactly the kind of thing an ADH might probe. It also gives Rohit a genuinely good answer in a code walkthrough.
+
+### The theme that results
+
+Because the five status colours must stay loud, **everything else in the app goes quiet.** Chrome becomes deep slate, near-navy. Status pills become the only saturated colour on screen, which makes them easier to read, not harder.
+
+```
+--ink-900  #0f172a   sidebar, headings, primary buttons
+--ink-700  #334155   body text
+--ink-500  #64748b   muted text, axis labels
+--line     #e2e8f0   hairline borders
+--surface  #ffffff   cards
+--page     #f1f5f9   page background
+--focus    #3b82f6   focus outline only, never a fill
+```
+
+The five status colours: unchanged, and used **only** inside pills and chart bars, always beside a written label.
+
+---
+
+## Piece 17 — The design system
+
+**Files:** `styles.css` rewritten around tokens; `components/Layout.jsx` rebuilt; new `components/ui/` with `Card`, `Button`, `Modal`, `Toolbar`, `Field`, `EmptyState`, `Skeleton`.
+
+**Navigation changes from a top strip to a left sidebar.** Dark slate, the bank mark at the top, grouped links with small icons, the signed-in person at the bottom. A thin top bar keeps the page title and a sign-out control. This one change does more for "does this look like a real product" than anything else on the list.
+
+**Buttons get real states.** Rest, hover, a genuine pressed state that moves the button down 1px, a focus ring for keyboard users, and a disabled state. The dashboard refresh button gets a spinning icon while it is actually fetching — the thing Rohit noticed was missing.
+
+**A modal component**, since three pages need one. Opens with a short fade and lift, closes on Escape or a click outside, returns keyboard focus where it came from, and traps focus while open.
+
+**Tables** get proper column alignment, numbers right-aligned in tabular figures so digits line up, a hover row tint, and a real empty state instead of a bare sentence.
+
+**Nothing in this piece changes behaviour.** Same screens, same data, same rules.
+
+---
+
+## Piece 18 — Applications list and the new-application form
+
+**The list:** filters move into a proper toolbar — a search box on the left, then filter controls, then a result count and the clear button on the right, on one line that wraps sensibly instead of the current crowd. Sort becomes explicit: click a column heading to sort by it, with an arrow showing which way. Row hover, and the whole row stays clickable.
+
+**The form:** currently one long stack of inputs. It becomes three labelled sections — *Who is applying*, *The loan*, *Why* — on a card, with the live eligibility panel beside it rather than below. Amount gets a formatted preview underneath as you type ("₹20,00,000"), tenure gets quick-pick chips for common terms, and each field shows its rule as a hint until you break it, then shows the error.
+
+---
+
+## Piece 19 — Automatic eligibility, and the stored summary
+
+Two halves: the live check in the browser, and the permanent record on the server.
+
+**Live, in the form.** The check stops being a button you have to remember. As soon as applicant, loan type, amount and tenure are all filled and individually valid, the app asks the server automatically, waiting about 600ms after typing stops so it does not fire on every keystroke. The result appears in the panel beside the form and updates as you change things. The button stays, as an explicit "check again".
+
+**The result panel** becomes a proper assessment card: a clear verdict line, then every rule that was checked shown as a passed or failed row — tenure, amount, income, credit score, employment, age, affordability — not just the failures. Seeing seven green rows and one red one is far more convincing than one line of red text. Failures carry their suggestion with a one-click "use this" as now.
+
+**On submit, when not eligible**, a modal appears rather than the current inline warning: what failed, what the consequence is, and two clear choices — go back and adjust, or submit anyway. That is a decision point, which is what modals are for.
+
+**The stored summary — the backend half.** This is the part Rohit asked for and it does not exist yet.
+
+When an application is created, **the server runs the eligibility assessment itself** and stores the outcome on the application. Not the browser's copy — the server's own, so it cannot be skipped or faked by anything calling the API.
+
+Three new columns on `loan_applications`, all optional so nothing existing breaks:
+
+| Column | Holds |
+|---|---|
+| `eligibility_passed` | true or false at the moment of submission |
+| `eligibility_summary` | the readable text below |
+| `eligibility_checked_at` | when |
+
+The summary reads like a note a person would write:
+
+```
+Eligibility assessed at submission on 06 Sep 2026, 01:52.
+
+Applicant: Priya Sharma — CIBIL 720, annual income ₹6,00,000,
+salaried 3 years, age 32.
+Requested: home loan of ₹20,00,000 over 120 months.
+Estimated EMI ₹28,694 a month at the indicative rate of 12%.
+
+Result: NOT ELIGIBLE — 6 of 7 rules met.
+
+  PASS  Tenure within 12–360 months for a home loan
+  PASS  Amount within the ₹1,00,00,000 home loan limit
+  PASS  Annual income at or above ₹4,80,000
+  PASS  CIBIL score at or above 700
+  PASS  Employment: salaried, 3 years with current employer
+  PASS  Age 32 within 21–70, and the loan ends before age 70
+  FAIL  Affordability — the estimated EMI of ₹28,694 exceeds the
+        50% of monthly income available for loan payments (₹25,000)
+
+Submitted anyway by priya@example.com.
+```
+
+Shown on the application detail page in its own panel, and it means every application carries a permanent record of what the bank knew and what the rules said at that moment. Phase 5's decision agent gets a large head start from it.
+
+**Checked against the tests:** API-01's application passes eligibility; API-03's home loan is the one that fails affordability. Neither is blocked, both still return 201, and the extra fields in the response do not affect what the tests assert. Safe.
+
+---
+
+## Piece 20 — Dashboard
+
+**A row of four stat tiles** at the top: total applications, awaiting review, total requested, approved but not yet paid. Large figures, a quiet label above, and the two rupee figures in tabular digits.
+
+**The pipeline**, as horizontal bars in workflow order — submitted, under review, approved, rejected, disbursed — each in its mandated colour with the status name and count written beside it. Horizontal because the labels are long words; written labels because of the green/red finding above. A thin stacked bar across the top shows the same thing as parts of a whole.
+
+**By loan type**, as horizontal bars in a **single blue shade, darker meaning more.** Deliberately not the status colours: on that chart colour means "how many", not "which status", and using one hue keeps the page from having two competing colour languages.
+
+**No charting library.** These forms are simple enough to draw directly, which gives exact control over bar thickness, rounded ends and gaps, adds nothing to the download, and leaves code Rohit can read line by line in a walkthrough. A library would fight the design and be one more thing to explain.
+
+**The refresh button** spins while loading and briefly shows a tick when done.
+
+> **Decision for Rohit — see the message with this plan.** Pie charts were asked for; the validator argues against them for status. There is a defensible middle option.
+
+---
+
+## Piece 21 — Activity page
+
+**The toolbar** currently puts seven controls in one crowded row. It becomes: a search box, then a compact filter row, then an expandable "more filters" area for the date range and record lookup. Everything stays — nothing is removed — it is just no longer all shouting at once.
+
+**The table** loses the raw data column. Each row becomes: when, who (with an "AI" tag and who it acted for, when it was an agent), what happened in plain words, and which record. A "View" control on each row opens a **modal** with the full story — every field laid out as labelled rows, the technical details formatted properly rather than dumped as one string, and the request id shown as something you could quote to a developer.
+
+**Plain-word action names.** `status_changed` becomes "Status changed", `eligibility_checked` becomes "Eligibility checked", and so on, with a small icon per kind of action.
+
+---
+
 ## Done
 
 | # | Piece | Finished | Commit |

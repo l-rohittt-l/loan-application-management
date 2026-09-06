@@ -82,6 +82,10 @@ No decision needed. These break something quietly if forgotten.
 
 **T-14 · There are only two "medium" risks, and both are defined.** Medium credit risk is CIBIL 650 to 749. Medium employment risk is salaried under 2 years or self-employed. Nothing is undefined.
 
+### From designing the dashboard (2026-09-06)
+
+**T-38 · The trainer's five status colours cannot be used in a pie chart.** Ran them through a colour-accessibility validator against a white surface. Side by side as bars, only one pair is weak: green and red measure ΔE 5.0 apart for a viewer with red-green colour blindness, which a written label beside each bar fully mitigates. But in a pie or donut every colour sits against every other, and there the numbers collapse: **purple vs blue measure ΔE 0.4 under red-green colour blindness** (indistinguishable), and **red vs orange measure ΔE 8.7 with normal colour vision** (below the 15 floor — hard for anyone). So the pipeline chart is horizontal bars with written labels, never a pie. Loan type uses a single blue shade instead, because on that chart colour means quantity, not identity. Worth saying out loud in the demo if accessibility comes up.
+
 ### From the mentor chats
 
 **T-09 · Streamlit was overruled, but not replaced.** The Phase 2–4 tests check Streamlit; the demo runs React. Build both. Chat logic lives in the backend, both front-ends are thin screens.

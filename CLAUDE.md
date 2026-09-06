@@ -218,6 +218,16 @@ Rohit cannot keep up with ten things in one message, and he will forget what he 
 - Before moving to the next step, confirm the current one is done and ask if he has questions.
 - **Never skip asking him something because it would make the reply longer.** Ask it in the next reply instead.
 - **Parked questions get raised when the piece in front of us needs them, not before.** Draft saving gets designed when we reach it. Hosting gets decided before the demo. Do not bring them up early just because they are open.
+- **One piece per turn, no exceptions.** Build one piece from `BUILD-PLAN.md`, then stop and hand back to him. Never chain into the next piece on your own, even if he said "keep going" earlier in the session — that phrase means "don't make me approve every file," not "build the rest of the phase without me." If you are ever unsure whether "keep going" covers the next piece too, it does not. Stop and ask.
+- **Never ask him to do more than one thing in a single reply.** If a piece needs two things from him — an answer and an action — split it into two replies. He cannot hold several asks in his head at once; asking for two guarantees one gets forgotten.
+
+## Rule 16 — Tell him what Claude Code setting to use for his next reply
+
+Rohit wants to control model and effort deliberately, not have it happen invisibly. So the **last thing in every reply**, alongside what to read (Rule 8), also says:
+- Which model his next message should use: Sonnet, Fable, Opus, or Haiku.
+- Which effort level: low, medium, high, extra high, max, or ultracode (xhigh + workflows).
+
+Pick the smallest model and lowest effort that comfortably does the next piece. Planning and simple decisions: Sonnet, low or medium. A meaty piece of code, several files, or something that needs careful reasoning: Fable or Opus, high. Reserve max/ultracode for something genuinely large or high-stakes — not a default.
 
 ## Rule 15 — Keep a learning-notes file for him
 
