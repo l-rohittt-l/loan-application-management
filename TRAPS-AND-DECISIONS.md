@@ -245,6 +245,16 @@ A suffixed name fails both instantly. **Fix: Gemini, the default, uses the bare 
 
 # Settled
 
+### 2026-09-06 · T-63 — `requirements.txt` had been Phase 1 only since Phase 2 started, and installing `fastmcp` unpinned breaks FastAPI
+
+**What's wrong, part one:** `requirements.txt` carried a comment saying "Phase 2+ packages get added when those phases start" — and then nobody ever came back and added them. Every Phase 2, 3 and 4 package (`langchain`, `langchain-google-genai`, `chromadb`, `google-genai`, `langsmith`, and now `fastmcp`/`mcp`) had only ever been installed by hand into this one venv, never written down. A clean checkout plus `pip install -r requirements.txt` would have built a Phase-1-only environment — every later phase's tests would fail on their first import line, on a reviewer's machine, not this one.
+
+**What's wrong, part two:** installing `fastmcp` (any version, including the trainer's own pin `0.4.1`) pulls in the official `mcp` SDK, which does not cap `starlette`'s version — so a plain `pip install fastmcp` drags in the newest starlette (1.6.0+). That breaks FastAPI 0.111.0 outright (`Router.__init__() got an unexpected keyword argument 'on_startup'` — a constructor argument removed upstream) and breaks OpenTelemetry's FastAPI instrumentation the same way. This was found the hard way: installing fastmcp normally broke `app.main` immediately, and the recovery attempt — upgrading FastAPI itself to the newest release instead — broke the OTel instrumentation on a different incompatibility, so that path was abandoned and reverted too.
+
+**Chosen:** pin `starlette==0.37.2` explicitly, alongside `mcp==1.6.0` and `fastmcp==0.4.1`. `mcp`'s own requirement on starlette is only a lower bound, so the older, already-required pin still satisfies it — confirmed in an isolated throwaway venv before touching the real one. Then rewrote `requirements.txt` from a full `pip freeze` of the actual working venv, organised by phase with the reasoning next to every version that isn't the trainer's original pin, and validated it by installing into a brand new venv and importing everything Phase 1 through 4 need. That clean-room install is what should have existed since Phase 2.
+
+**Why it matters:** this is exactly the kind of gap Step 4 of this run exists to catch — invisible in the code, invisible in a passing test suite, only found by actually trying the thing a reviewer would try.
+
 ### 2026-09-06 · T-61 — The trainer's Phase 3 status-query test checks the wrong spelling
 
 **What's wrong:** `TC-01-P3-E2E-01` checks the agent's plain-English answer for the literal enum value `under_review`, underscore and all. A correctly working agent writes "the application is currently **under review**" — a space, because that is how English works — so the check fails against an agent that is doing exactly what it should. Same shape of bug as T-36 in Phase 1: the trainer's own test would fail on any implementation that behaves the way the phase is asking it to behave.

@@ -1,5 +1,13 @@
 # Phase 1 packages. Versions match TECH_STACK_REFERENCE.md unless a comment says why not.
-# Phase 2+ packages get added when those phases start.
+#
+# T-63: this file used to list Phase 1 packages only, with a comment saying
+# "Phase 2+ packages get added when those phases start" — but nobody ever
+# came back and added them. A clean checkout plus `pip install -r
+# requirements.txt` would have built a Phase-1-only environment: every
+# Phase 2, 3 and 4 import would fail with ModuleNotFoundError on the first
+# line. Found and fixed in the run that finished Phase 3 and built Phase 4.
+# Every version below is what this project's own venv actually runs today,
+# captured with `pip freeze` and checked back against a full test run.
 
 # Web framework
 fastapi==0.111.0
@@ -10,8 +18,8 @@ sqlalchemy==2.0.30
 alembic==1.13.1
 
 # Validation
-pydantic==2.7.1
-pydantic-settings==2.3.0
+pydantic==2.13.5               # bumped from 2.7.1: langchain 1.4.0 needs >=2.12.5 (T-52)
+pydantic-settings==2.15.0      # bumped from 2.3.0: langchain-community needs >=2.10.1
 email-validator==2.1.1        # needed for EmailStr; test UNIT-02 checks email format
 python-multipart==0.0.9
 
@@ -34,9 +42,46 @@ streamlit==1.36.0
 # Testing
 pytest==8.2.2
 pytest-asyncio==0.23.7
-httpx==0.27.0
+httpx==0.28.1                  # bumped from 0.27.0: langchain/google-genai need >=0.28.1
 pytest-cov==5.0.0
 
 # Utilities
 python-dotenv==1.0.1
-requests==2.32.3
+requests==2.34.2               # bumped from 2.32.3: langchain-community needs >=2.32.5
+
+# ---------------------------------------------------------------------------
+# Phase 2 — the RAG chatbot (T-52: upgraded off the trainer's dead pins,
+# gemini-2.0-flash and text-embedding-004 are both retired, see T-51)
+# ---------------------------------------------------------------------------
+langchain==1.4.0
+langchain-core==1.6.2
+langchain-classic==1.0.8        # create_react_agent, AgentExecutor moved here in langchain 1.x
+langchain-community==0.4.2
+langchain-google-genai==4.4.0
+langchain-text-splitters==1.1.2
+langchain-chroma==1.1.0
+chromadb==1.5.9
+google-genai==2.22.0            # plain HTTPS embedding calls (T-52); langchain-google-genai depends on this
+langsmith==0.12.2               # tracing, Phase 2 OBS-01/04 onwards
+
+# ---------------------------------------------------------------------------
+# Phase 3 — the agent with five tools (no extra packages beyond Phase 2's
+# langchain stack; agent/ uses langchain_classic's create_react_agent)
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# Phase 4 — MCP server and chat interface
+#
+# T-63: fastmcp and the official `mcp` SDK it wraps do NOT pin an upper bound
+# on starlette, so an unpinned `pip install fastmcp` drags in the newest
+# starlette (1.6.0+), which breaks FastAPI 0.111.0 outright (a Router
+# constructor argument FastAPI relies on no longer exists) and breaks
+# OpenTelemetry's FastAPI instrumentation the same way. Pinning `starlette`
+# itself back down to the version Phase 1 already needs is enough — mcp
+# 1.6.0's own requirement is only a lower bound, so the old pin still
+# satisfies it. Verified: all of Phase 1, 2 and 3's tests still pass with
+# this exact combination installed.
+# ---------------------------------------------------------------------------
+mcp==1.6.0
+fastmcp==0.4.1
+starlette==0.37.2               # keep pinned here too: nothing above may raise this
