@@ -55,3 +55,4 @@ Thumbs.db
 
 # ---- Claude Code local state --------------------------------------------
 .claude/
+chroma_db/

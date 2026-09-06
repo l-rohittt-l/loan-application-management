@@ -1,0 +1,399 @@
+# Loan Application Management System (LAMS) — User Manual
+
+This manual is the single source of truth the LAMS assistant answers from. Every
+number in it matches `backend/app/domain/rules.py`, which is the code that
+actually enforces these rules. If one changes, both change.
+
+---
+
+## Section 1 — System Overview
+
+The Loan Application Management System, known as LAMS, is the online loan
+service of the bank. It handles three kinds of loan: **personal loans**, **home
+loans**, and **auto loans**. The system is available 24 hours a day, seven days
+a week, although applications are reviewed by loan officers only during working
+hours.
+
+LAMS provides:
+
+- Online loan application submission, with no need to visit a branch
+- Live status tracking, so an applicant always knows where their application is
+- Document upload and verification by bank staff
+- A review dashboard for loan officers
+- An analytics dashboard for branch managers
+- A complete audit trail of every action taken on every application
+
+An applicant registers once, creates a borrower profile, and can then submit as
+many loan applications as they wish. Each application is tracked separately and
+moves through its own review process.
+
+---
+
+## Section 2 — Roles and Permissions
+
+LAMS has three kinds of user, and each sees a different part of the system.
+
+**Applicant (the customer).** An applicant may submit loan applications, upload
+documents against their own applications, view their own application status and
+history, and check their eligibility before applying. An applicant **cannot see
+any other applicant's data**. Attempting to open another customer's application
+returns a "forbidden" error. This is enforced by the server on every request,
+not merely hidden in the screens.
+
+**Loan Officer (bank staff).** A loan officer may view all loan applications
+from every customer, create borrower profiles on a customer's behalf, move an
+application from `submitted` to `under_review`, approve or reject an application
+under review, add remarks explaining a decision, and verify uploaded documents.
+A loan officer **cannot disburse a loan** — that is, cannot release the money.
+
+**Branch Manager.** A branch manager may do everything a loan officer can do,
+and in addition may **disburse an approved loan**, view the analytics dashboard,
+and view the full activity log of everything that has happened in the branch.
+Disbursement is restricted to the branch manager because it is the point at
+which money actually leaves the bank.
+
+---
+
+## Section 3 — The Six-Step Loan Workflow
+
+Every loan in LAMS follows the same six steps, in order.
+
+1. **Registration.** The customer creates an account with their email address
+   and a password, which also creates their borrower profile.
+2. **Application submission.** The customer chooses a loan type, an amount and a
+   tenure, states the purpose, and submits. The application is created with
+   status `submitted`.
+3. **Document upload.** The customer uploads the documents that their loan type
+   requires. Documents may be uploaded before or after submission.
+4. **Loan officer review.** An officer picks up the application, moves it to
+   `under_review`, checks the documents, and verifies them one by one.
+5. **Decision.** The officer either approves or rejects the application, and
+   records remarks explaining why.
+6. **Disbursement.** For an approved loan, the branch manager releases the funds
+   and the application moves to `disbursed`. This is the final state.
+
+---
+
+## Section 4 — Required Documents
+
+Every document is stored against a document type. The type names used by the
+system are `id_proof`, `income_proof`, `bank_statement`, `property_docs`,
+`employment_letter` and `vehicle_quotation`.
+
+**A personal loan requires three documents:**
+
+- `id_proof` — identity proof, such as Aadhaar, PAN card, passport or driving licence
+- `income_proof` — income proof, being the last 3 months of salary slips
+- `bank_statement` — a bank statement covering the last 6 months
+
+**A home loan requires five documents.** The three above, plus:
+
+- `property_docs` — property documents: the sale deed, the NOC, and the building plan approval
+- `employment_letter` — an employment letter from the current employer, for salaried applicants
+
+**An auto loan requires four documents.** The three base documents
+(`id_proof`, `income_proof`, `bank_statement`), plus:
+
+- `vehicle_quotation` — a vehicle quotation or proforma invoice from the dealer
+
+Documents must be in PDF, JPG or PNG format and each file must be no larger
+than 5 MB. The same document type may be uploaded more than once; every copy is
+kept. Only documents that have **not yet been verified** may be replaced. Once a
+loan officer has verified a document, it is fixed as part of the record.
+
+---
+
+## Section 5 — Eligibility Criteria
+
+These are the rules the system applies when assessing whether a loan can be
+granted. They are checked automatically before an application is submitted, and
+again by the loan officer during review.
+
+### Personal loan eligibility
+
+- Age: **21 to 60 years**
+- Minimum annual income: **₹2,40,000** (that is ₹20,000 a month)
+- Minimum CIBIL score: **650**
+- Maximum loan amount: **₹25,00,000** (25 lakh)
+- Tenure: **12 to 60 months**
+- A personal loan is unsecured, so a CIBIL score must be on file. An applicant
+  with no CIBIL score at all cannot be considered for a personal loan.
+
+### Home loan eligibility
+
+- Age: **21 to 70 years**, and the loan must be fully repaid before the borrower
+  turns **70**. A 55-year-old therefore cannot take a 30-year home loan.
+- Minimum annual income: **₹4,80,000** (that is ₹40,000 a month)
+- Minimum CIBIL score: **700**
+- Maximum loan amount: **₹1,00,00,000** (1 crore). Within that ceiling, the
+  amount sanctioned is also limited to about **80% of the assessed property
+  value**, which the credit team applies at valuation.
+- Tenure: **12 to 360 months**
+- The EMI must not exceed 50% of monthly income.
+
+### Auto loan eligibility
+
+- Age: **21 to 65 years**
+- Minimum annual income: **₹1,80,000** (that is ₹15,000 a month)
+- Minimum CIBIL score: **600**
+- Maximum loan amount: **₹50,00,000** (50 lakh). Within that ceiling, the amount
+  sanctioned is also limited to about **90% of the vehicle value**.
+- Tenure: **12 to 84 months**
+
+### Rules that apply to all three loan types
+
+- The smallest loan LAMS will accept is **₹10,000**.
+- Total monthly EMI commitments, including any loans the applicant is already
+  repaying, must not exceed **50% of monthly income**. This is the affordability
+  rule and it applies to personal, home and auto loans alike.
+- A salaried applicant must have been with their current employer for at least
+  **6 months**. A self-employed applicant must show at least **2 years** of
+  business history.
+- An unemployed applicant cannot be approved for any loan.
+- An applicant with no CIBIL score can only be considered for a **secured** loan,
+  meaning a home loan or an auto loan, where the property or vehicle acts as
+  collateral.
+
+---
+
+## Section 6 — Application Status Rules
+
+An application has exactly one status at a time, and can only move forwards.
+
+The five statuses are `submitted`, `under_review`, `approved`, `rejected` and
+`disbursed`.
+
+The permitted moves are:
+
+- `submitted` → `under_review`
+- `under_review` → `approved`
+- `under_review` → `rejected`
+- `approved` → `disbursed`
+
+Nothing else is allowed. In particular, an application can never move backwards,
+`rejected` is final, and `disbursed` is final.
+
+**Once an application is rejected it cannot be reopened.** The customer must
+submit a brand-new application. Only a branch manager may perform the
+`approved` → `disbursed` move. Every status change is recorded in the audit log
+with who made it, when, and the remarks they wrote.
+
+Applications **cannot be modified after submission**. If the details are wrong,
+the customer withdraws the application and submits a new one.
+
+---
+
+## Section 7 — How EMI Is Calculated
+
+EMI stands for Equated Monthly Instalment: the fixed amount paid every month
+until the loan is repaid. LAMS uses the standard reducing-balance formula.
+
+```
+EMI = P × r × (1 + r)^n / ((1 + r)^n − 1)
+
+where
+  P = the loan amount (the principal)
+  r = the monthly interest rate, which is the annual rate ÷ 12 ÷ 100
+  n = the tenure in months
+```
+
+**Worked example.** A loan of ₹5,00,000 at 12% per year over 36 months:
+
+```
+  r   = 12 ÷ 12 ÷ 100 = 0.01
+  n   = 36
+  EMI = ₹16,607 per month
+```
+
+When LAMS estimates an EMI before the final interest rate has been set, it uses
+an indicative rate of **12% per year**. The rate actually offered depends on the
+loan type, the CIBIL score and the tenure.
+
+---
+
+## Section 8 — The Dashboard
+
+The dashboard gives bank staff the state of the branch at a glance. It shows the
+total number of applications, a count of applications at each status, a count by
+loan type, and the total amount requested across all applications. It also shows
+how many applications are awaiting review and the total value of loans that are
+approved but not yet paid out.
+
+The dashboard refreshes every 5 minutes, and can be refreshed on demand. Loan
+officers and branch managers can both view the dashboard. Applicants cannot.
+
+---
+
+## Section 9 — Processing Times
+
+How long an application takes depends on the loan type.
+
+| Loan type | Usual time | Maximum time |
+|---|---|---|
+| Personal loan | 2 to 3 business days | 7 business days |
+| Home loan | 7 to 10 business days | 21 business days |
+| Auto loan | 1 to 2 business days | 5 business days |
+
+A personal loan is normally decided within **2 to 3 business days**. A home loan
+takes longer, usually **7 to 10 business days**, because the property has to be
+valued and the legal documents checked. An auto loan is the quickest, usually
+**1 to 2 business days**.
+
+Loan officers work Monday to Saturday, 9 AM to 6 PM. An application submitted on
+a Saturday evening or a Sunday will not be picked up until the next working day,
+so an application sitting in `submitted` for 24 hours is entirely normal.
+
+---
+
+## Section 10 — Security and Privacy
+
+Every user signs in with an email address and a password. Passwords are stored
+hashed using bcrypt and are never stored in readable form. A session expires
+after 24 hours, after which the user signs in again.
+
+Customer data is held on the bank's servers and is fetched fresh with the user's
+own session each time it is displayed. Financial data is encrypted at rest.
+
+Access is checked on the server for every single request. An applicant can only
+ever retrieve their own applications, their own documents and their own profile.
+
+Every status change and every significant action is written to an audit log
+recording who did it, what they did, when, and why. The branch manager can review
+this log at any time.
+
+---
+
+## Section 11 — Frequently Asked Questions
+
+**What interest rate will I be charged?**
+Personal loans carry **10.99% to 18%** per year. Home loans carry **8.5% to 12%**
+per year. Auto loans carry **9% to 14%** per year. The exact rate depends on your
+CIBIL score, your income and the tenure you choose.
+
+**Is there a processing fee?**
+Yes. The processing fee is **0.5% to 2% of the loan amount, subject to a minimum
+of ₹500**. It is deducted from the amount disbursed, so the money that reaches
+your account is the sanctioned amount minus the fee.
+
+**Can I repay my loan early?**
+Yes, after a lock-in period. For a personal loan the lock-in is **6 months**; for
+a home loan it is **12 months**. Early repayment carries a charge of **2% of the
+outstanding principal**.
+
+**My application was rejected. What happens now?**
+A rejected application cannot be reopened. You may **reapply after 90 days**, and
+you must submit a **new application** rather than reviving the old one. The
+rejection reason is recorded in the remarks and is visible to you, so you know
+what to improve. The most common rejection reasons are income below the minimum,
+a CIBIL score below the threshold, incomplete or unverified documents, and
+problems with the property valuation on a home loan.
+
+**Can I change my application after submitting it?**
+No. Applications cannot be modified after submission. Withdraw the application
+and submit a new one with the correct details.
+
+**How long must I have been in my job?**
+Salaried applicants need at least **6 months** with their current employer.
+Self-employed applicants need at least **2 years** of business history.
+
+**How is my income verified?**
+For salaried applicants, by salary slips and Form 16. For self-employed
+applicants, by 2 years of income tax returns.
+
+**Can I replace a document I have already uploaded?**
+Only if it has not yet been verified. Once a loan officer marks a document as
+verified, it becomes part of the permanent record.
+
+**Can I add a co-applicant?**
+A co-applicant must be added **at the time of submission**. A co-applicant cannot
+be added to an application that has already been submitted.
+
+**I have no CIBIL score. Can I still borrow?**
+Only for a **secured** loan, which means a home loan or an auto loan where the
+property or the vehicle acts as collateral. An unsecured personal loan requires a
+CIBIL score of at least 650.
+
+**What is the difference between the sanctioned amount and the disbursed amount?**
+The sanctioned amount is what the bank has approved. The disbursed amount is what
+actually reaches your bank account, which is the sanctioned amount minus the
+processing fee and any other charges.
+
+**What is the maximum I can borrow?**
+₹25,00,000 for a personal loan, ₹1,00,00,000 for a home loan, and ₹50,00,000 for
+an auto loan. The smallest loan is ₹10,000.
+
+**How much of my income can go towards EMIs?**
+No more than **50% of your monthly income**, counting every loan you are already
+repaying as well as the new one.
+
+**How do I track my application?**
+Sign in and open your applications list. Each application shows its current
+status and a full history of every change, with the date and the remarks.
+
+**Who decides my application?**
+A loan officer reviews it and approves or rejects it. If it is approved, a branch
+manager releases the funds.
+
+---
+
+## Section 12 — Troubleshooting
+
+**My document upload was rejected.** Documents must be in PDF, JPG or PNG format
+and no larger than 5 MB each. Other formats are not accepted.
+
+**My application has been in "submitted" for a day.** This is normal. Loan
+officers work Monday to Saturday, 9 AM to 6 PM, so an application submitted
+outside those hours waits until the next working day.
+
+**I cannot see another person's application.** That is deliberate. Applicants can
+only see their own data.
+
+**I cannot disburse an approved loan.** Only a branch manager can disburse. A
+loan officer who tries will be refused.
+
+**I was told my status change is invalid.** Applications only move forwards, in
+the order given in Section 6. A rejected or disbursed application cannot move at
+all.
+
+**I am locked out.** Sessions expire after 24 hours. Sign in again.
+
+---
+
+## Section 13 — Glossary
+
+**CIBIL score** — A three-digit number from 300 to 900 summarising how reliably a
+person has repaid credit in the past. Higher is better. Lenders use it to judge
+credit risk.
+
+**EMI** — Equated Monthly Instalment. The fixed sum paid every month until a loan
+is fully repaid, covering both interest and principal.
+
+**LTV (Loan to Value)** — The loan amount expressed as a percentage of the value
+of the asset securing it. A home loan is limited to roughly 80% LTV, and an auto
+loan to roughly 90%.
+
+**KYC (Know Your Customer)** — The identity checks a bank must perform before
+lending, done in LAMS by verifying the uploaded `id_proof`.
+
+**Sanction letter** — The formal document stating that the bank has approved a
+loan, and on what terms.
+
+**Disbursement** — The moment the approved money actually leaves the bank and
+reaches the borrower's account.
+
+**Collateral** — An asset pledged against a loan, which the lender may claim if
+the borrower stops repaying. A home loan is secured against the property; an auto
+loan against the vehicle.
+
+**NPA (Non-Performing Asset)** — A loan on which the borrower has not made a
+payment for 90 days or more.
+
+**FOIR (Fixed Obligation to Income Ratio)** — The share of monthly income already
+committed to fixed repayments. LAMS caps it at 50%.
+
+**Pre-EMI** — For a home loan paid out in stages during construction, the
+interest-only payment made before the full EMI begins.
+
+**Tenure** — The length of the loan in months.
+
+**Principal** — The amount borrowed, before interest.

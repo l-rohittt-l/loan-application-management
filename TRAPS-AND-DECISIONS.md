@@ -114,6 +114,57 @@ The quick way to tell, before doubting the code: open `http://localhost:8000/ope
 
 **T-45 · Irreversible actions had no confirmation.** `rejected` and `disbursed` are both terminal in the status machine — nothing moves out of them — yet both were one click on a dropdown away with no "are you sure". Now each opens a dialog naming the application, the status it is moving from and to, and the remarks that will be recorded. The server was always right; this is about not letting a person destroy something by accident.
 
+### The models the trainer mandated no longer exist (2026-09-06)
+
+**T-51 · `gemini-2.0-flash` is retired, and so is `models/text-embedding-004`.** Both are named all through the trainer's documents, and the program's own FAQ says *"Can I use a different LLM instead of Gemini? No."* Google now answers:
+
+```
+404 This model models/gemini-2.0-flash is no longer available.
+Please update your code to use models/gemini-3.6-flash
+```
+
+Rohit's API key is fine — a dead model returns 404, not an auth error. Asking Google what the key *can* use returned 40 chat models and exactly three embedding models: `gemini-embedding-001`, `gemini-embedding-2`, `gemini-embedding-2-preview`. `text-embedding-004` is not among them. **What we use: `gemini-3.8-flash` for chat and `gemini-embedding-001` for embeddings**, both set in `.env` so they are one line to change. `gemini-3.6-flash` also works but answered in 5.3s against 2.1s, and `gemini-2.5-flash` is closed to new users.
+
+This is worth saying out loud in the demo rather than hiding: the POC was specified against models that were withdrawn, and it kept working because the provider is a setting and not a hardcoded string.
+
+**T-52 · The trainer's pinned `langchain-google-genai==1.0.6` cannot embed at all any more.** Every embedding model returned `504 Deadline Exceeded` through that library, three attempts each, while chat through the same library worked. The same models over plain HTTPS answered in **0.58 seconds**. So it was never the key, the network, or the models — the mid-2024 pinned library talks a protocol Google no longer serves for embeddings. Diagnosed by calling `:embedContent` directly with `urllib` and comparing.
+
+**Fix: the LangChain stack is upgraded off the trainer's pins** — `langchain 1.4.0`, `langchain-core 1.6.2`, `langchain-google-genai 4.4.0`, `langchain-community 0.4.2`, `langchain-chroma 1.1.0`, `chromadb 1.5.9`. Phase 1's 37 tests were re-run immediately after and all still pass, so nothing regressed. The tests check behaviour, not library versions.
+
+**T-53 · `from langchain.text_splitter import RecursiveCharacterTextSplitter` no longer exists.** The Phase 2 spec's `ING-02` uses that path; in LangChain 1.x it is `from langchain_text_splitters import RecursiveCharacterTextSplitter`. Our copy of the test uses the current path. Same class, same behaviour — this is an import move, not a change of meaning. Documented in a comment in the test, the same way `T-36` was.
+
+**T-54 · Good news that cancels the old embedding trap.** `T-10` warned that Gemini and Ollama both produced 768 numbers per chunk, so ChromaDB would silently accept one against the other and hand back confident nonsense. `gemini-embedding-001` returns **3072** numbers. Ollama's `nomic-embed-text` still returns 768, so a mix-up now fails **loudly** with a dimension error instead of quietly. The separate-collection rule in `T-46` stays anyway — it costs nothing and does not depend on the sizes staying different.
+
+**T-55 · The free tier is 5 requests a minute, not the 15 the blueprint promises.** Measured, not assumed: firing eight quick calls at each model, `gemini-3.8-flash` refused after one and named `limit: 5` in the error, and also returned a `503 UNAVAILABLE` (the model itself being overloaded). One question in the generation run stalled for **23 seconds** behind exponential-backoff retries. That is fatal in a demo and painful across a 20-test run that makes an LLM call per test.
+
+`gemini-flash-lite-latest` and `gemini-3.5-flash-lite` both completed **8 of 8** with no refusal at all. **So the chat model is `gemini-3.5-flash-lite`**, pinned to that exact version rather than the `-latest` alias, because an alias can silently move to a different model in the middle of a presentation. Answers came back in about **1.3 seconds** against 2–23 seconds, and all six generation checks still pass, because the job here is reading an answer out of supplied text rather than reasoning from scratch — which is what the lite models are good at.
+
+**T-56 · An empty question crashes the embedding API, not just the retriever.** `retriever.invoke("")` raised `400 Bad Request`: asking a model to describe the meaning of an empty string is not a sensible request and Google refuses it. This showed up as `TC-01-P2-RET-05` failing, but it mattered far more in the chat box, where pressing enter on an empty input crashed the answer instead of doing nothing. Fixed with a small `SafeRetriever` wrapper in `rag/rag_chain.py` that returns an empty list for a blank question without asking anyone. There is nothing to search for, so we do not search.
+
+**T-57 · Embeddings are capped at 100 a minute, and the test suite blew through it.** Separate from the chat limit. The suite ingested the manual four times over — once in the fixture, twice proving no duplication, once more for the span test — and 4 × 42 chunks exceeded the limit, failing `OBS-02` with `RESOURCE_EXHAUSTED`. Rather than paper over it with sleeps, `ingest_manual()` now fingerprints the manual's content (a hash of the text plus the chunk settings) and stores it on the collection. If the fingerprint matches and the collection is already full, the embedding step is skipped and says so in the log. Re-ingesting an unchanged manual now costs nothing. `--force` re-embeds anyway, which is what you want after changing the embedding model or switching provider.
+
+**T-58 · The global OpenTelemetry tracer provider can only be set once per process.** `OBS-02` needs spans printing to the console, but the rest of the suite runs with them off, and flipping the setting inside the test did nothing because the provider had already been fixed by the first test that imported the tracer. Not a bug in our code — an OpenTelemetry rule. The test now runs `python -m rag.ingest` as a **subprocess**, which gets a clean interpreter and, as a bonus, checks the actual command a person would type.
+
+**T-59 · `gemini-3.5-flash-lite` ignores the temperature setting.** It warns: *"uses fixed sampling defaults; the sampling parameter(s) temperature will be ignored"*. The Phase 2 spec asks for temperature 0.1, meaning "be predictable and factual". We pass 0.1 and the model disregards it. In practice this has not mattered — every answer is extracted from supplied extracts rather than composed freely, so there is little to vary, and all six generation tests pass repeatedly. Worth knowing before someone asks why the setting is there, and worth remembering for Phase 3, where the agent wants temperature 0 so it picks the same tool for the same question every time. If tool choice turns out to wobble, that is the first thing to check.
+
+### From reading the Phase 2 contract (2026-09-06)
+
+**T-46 · The provider-suffixed collection name breaks two of the trainer's tests.** Our own safety design (T-10) says each LLM provider gets its own ChromaDB collection, named `poc_01_loan_manual_{provider}`, because Gemini and Ollama both produce 768 numbers per chunk and mixing them fails *silently* with confident nonsense. But `TC-01-P2-ING-04` and `TC-01-P2-RET-01` open the collection by its exact literal name:
+
+```python
+collection = client.get_collection("poc_01_loan_manual")
+```
+
+A suffixed name fails both instantly. **Fix: Gemini, the default, uses the bare name `poc_01_loan_manual`; only Ollama gets a suffix, `poc_01_loan_manual_ollama`.** Both goals are met — the trainer's tests pass on the default provider, and the two providers still never share a collection. Written into `get_collection_name()` with this reason in a comment, because it looks like an inconsistency otherwise.
+
+**T-47 · The manual must literally contain the underscore document names.** `TC-01-P2-RET-01` and `TC-01-P2-GEN-02` search the retrieved text and the model's answer for the tokens `id_proof`, `income_proof`, `bank_statement` and `property`. GEN-02 needs at least three of them. Prose alone ("identity proof", "six months of bank statements") does not match `bank_statement`. So Section 4 of the manual has to name the document types in the same underscore form the database uses, next to the readable description. This is also honest: those are the real values the API accepts.
+
+**T-48 · Everything in Phase 2 is a path relative to `backend/`.** The tests call `TextLoader("rag/user_manual.md")` and `PersistentClient(path="./chroma_db")` with no way to configure either. So `pytest` must be run from `backend/`, and `chroma_db/` sits at `backend/chroma_db/`. Already consistent with how Phase 1 runs; just do not be tempted to move either path.
+
+**T-49 · The exact function shapes Phase 2 tests import.** `rag.ingest.ingest_manual(path)`; `rag.rag_chain.build_rag_chain()` returning the **tuple** `(chain, retriever)`; `rag.rag_chain.answer_question(query, chain, retriever)`. And `chain.invoke("a question")` must take a plain string and return a plain string — not a dict, and not a LangChain message object. Wrap the chain so the last step is `StrOutputParser()`.
+
+**T-50 · Two of the twenty tests need a LangSmith key we do not have.** `OBS-01` and `OBS-04` call the LangSmith API for traces. Without `LANGCHAIN_API_KEY` the ceiling is 18 of 20, and the pass mark is 14, so Phase 2 still clears comfortably. The key is free from smith.langchain.com and worth getting for the full score. Raised with Rohit on 2026-09-06.
+
 ### From the mentor chats
 
 **T-09 · Streamlit was overruled, but not replaced.** The Phase 2–4 tests check Streamlit; the demo runs React. Build both. Chat logic lives in the backend, both front-ends are thin screens.

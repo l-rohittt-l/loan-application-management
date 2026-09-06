@@ -46,6 +46,41 @@ class Settings(BaseSettings):
     # "console" prints every span to the terminal; "none" switches spans off (tests).
     otel_exporter: str = "console"
 
+    # ---- The AI provider (Phase 2 onwards) ----
+    # Which provider answers questions and makes embeddings: "gemini" or "ollama".
+    # Gemini was blocked on the company network for six weeks and the whole
+    # cohort had to move to Ollama, so this is one setting rather than a choice
+    # baked into a dozen files.
+    llm_provider: str = "gemini"
+
+    # The models the trainer named — gemini-2.0-flash and models/text-embedding-004 —
+    # have both been withdrawn by Google (T-51). These are the current
+    # replacements, kept here so swapping them is one line in .env.
+    google_api_key: str = ""
+    gemini_chat_model: str = "gemini-3.8-flash"
+    gemini_embed_model: str = "models/gemini-embedding-001"
+
+    ollama_base_url: str = "http://localhost:11434"
+    ollama_chat_model: str = "llama3.1"
+    ollama_embed_model: str = "nomic-embed-text"
+
+    # ---- The vector store (Phase 2 onwards) ----
+    chroma_persist_dir: str = "./chroma_db"
+    # The trainer's ING-04 and RET-01 open this collection by its exact literal
+    # name, so Gemini must use it unsuffixed. Only Ollama gets a suffix, which
+    # is what keeps the two providers' vectors apart (T-46).
+    chroma_collection: str = "poc_01_loan_manual"
+
+    # ---- Retrieval settings, exactly as the Phase 2 spec fixes them ----
+    chunk_size: int = 512
+    chunk_overlap: int = 50
+    top_k_results: int = 4
+
+    # ---- LangSmith tracing ----
+    langchain_tracing_v2: bool = False
+    langchain_api_key: str = ""
+    langchain_project: str = "AI-Readiness-POC-01-P2"
+
     @property
     def cors_origin_list(self) -> list[str]:
         """The CORS setting as a Python list."""

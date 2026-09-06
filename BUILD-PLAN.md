@@ -157,7 +157,65 @@ FINAL_CHANCE/                     ← the git repository starts here
 | 15 | Streamlit front-end | List, form, dashboard | **Done 2026-09-06** |
 | 16 | Seed data and test report | Demo data, then the submission files | **Done 2026-09-06** |
 
-**Phase 1 is complete.** Tagged `v0.1.0`. Phase 2 gets its own piece list below when it starts.
+**Phase 1 is complete.** Tagged `v0.1.0`.
+
+---
+
+# PHASE 2 — the chatbot that reads the manual
+
+**20% of the marks · 20 tests · 14 to pass.**
+
+You write a user manual for the loan system, then build a chatbot that answers
+only from it. Ask it something the manual does not cover and it must say so
+rather than invent an answer.
+
+## The pieces
+
+| # | Piece | What it is | Status |
+|---|---|---|---|
+| 22 | Packages and the provider switch | Phase 2 dependencies, `.env` settings, and the one file allowed to choose Gemini or Ollama | |
+| 23 | The user manual | All 13 sections, every number matching `rules.py` | |
+| 24 | Ingestion | Load, chunk, embed, store in ChromaDB | |
+| 25 | The RAG chain | Retrieve 4 chunks, answer from them, refuse when out of scope | |
+| 26 | Observability | LangSmith tracing, the five OTel spans, structured logs | |
+| 27 | The chat screens | React chat page, and the Streamlit one the later tests need | |
+| 28 | The 20 tests | `tests/phase2/`, named as the trainer's spec writes them | |
+
+## Piece 22 — Packages and the provider switch
+
+**The problem it solves.** Gemini was blocked on the company network for six
+weeks and the whole cohort had to move to Ollama. It can fail again, including
+during a presentation. So the provider is a setting, not a decision baked into
+fourteen files.
+
+**The one rule:** `backend/llm_provider.py` is the *only* file in the project
+allowed to import `ChatGoogleGenerativeAI`, `ChatOllama`, or either embeddings
+class. Everything else — ingestion, the chain, the Phase 3 tools, the Phase 5
+agents — calls `get_llm()`, `get_embeddings()` and `get_collection_name()`.
+Switching providers is then one line in `.env`.
+
+**The collection-name subtlety (T-46).** The obvious design gives each provider
+its own collection, `poc_01_loan_manual_gemini` and `..._ollama`, so the two can
+never be mixed — and mixing them fails *silently*, handing back confident
+nonsense, because both models produce vectors of exactly 768 numbers. But the
+trainer's `ING-04` and `RET-01` open the collection by its literal name
+`poc_01_loan_manual`. So: **Gemini keeps the bare name, and only Ollama gets a
+suffix.** Tests pass, and the collections still never collide.
+
+**Packages**, at the trainer's pinned versions: `langchain==0.2.6`,
+`langchain-google-genai==1.0.6`, `langchain-community==0.2.6`,
+`langchain-chroma==0.1.2`, `chromadb==0.5.3`, `streamlit==1.36.0`, plus
+`langsmith` and `langchain-ollama` for the fallback.
+
+**New `.env` settings:** `LLM_PROVIDER`, `LLM_AUTO_FALLBACK`,
+`GEMINI_CHAT_MODEL`, `GEMINI_EMBED_MODEL`, `OLLAMA_BASE_URL`,
+`OLLAMA_CHAT_MODEL`, `OLLAMA_EMBED_MODEL`, `CHROMA_PERSIST_DIR`,
+`CHROMA_COLLECTION`, `CHUNK_SIZE=512`, `CHUNK_OVERLAP=50`, `TOP_K_RESULTS=4`,
+and the three LangSmith ones. `GOOGLE_API_KEY` is already there.
+
+**A cautious check before anything else:** installing these must not disturb
+Phase 1. The 37 tests get run again straight after the install, before a line of
+Phase 2 code is written.
 
 ---
 
