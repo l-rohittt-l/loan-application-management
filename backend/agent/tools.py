@@ -31,80 +31,22 @@ and reloads this module to prove the tools notice a different address:
 
 from __future__ import annotations
 
-import os
 import time
 
-import requests
 import structlog
 from langchain_core.tools import tool
 
-from app.config import settings
-from app.utils.auth import create_access_token
+from app.services.loan_api_client import API_BASE_URL, api_get  # noqa: F401
 from app.utils.otel_config import get_tracer
 
 logger = structlog.get_logger()
 
-# Read once at import time so a reload (the trainer's EXEC-06) picks up a
-# changed value. Trimmed of a trailing "/api/v1" if someone includes it, so
-# both "http://localhost:8000" and "http://localhost:8000/api/v1" work.
-_raw_base = os.getenv("API_BASE_URL", settings.api_base_url)
-API_BASE_URL = _raw_base[: -len("/api/v1")] if _raw_base.endswith("/api/v1") else _raw_base
-
-REQUEST_TIMEOUT_SECONDS = 8
-
-
-def _service_token() -> str:
-    """
-    A signed-in identity for the agent to call the API as.
-
-    Every Phase 1 endpoint is owner-scoped and role-checked (Rule 6, D-06), so
-    the agent has to be *someone* — it cannot call the API anonymously. Minting
-    a fresh token on every call, rather than reading one fixed value from
-    `.env`, means the agent never breaks by sitting unused for 24 hours and
-    then finding its token expired mid-demo (T-24).
-    """
-    return create_access_token(email=settings.agent_service_email, role="branch_manager")
-
-
-def _api_get(path: str, params: dict | None = None) -> tuple[bool, dict | str]:
-    """
-    GET one address on the Phase 1 API.
-
-    Returns `(True, json)` on success, or `(False, message)` with a plain
-    sentence describing what went wrong — never raises. That is what lets a
-    tool turn "the server is down" into a sentence instead of a stack trace.
-    """
-    tracer = get_tracer()
-    url = f"{API_BASE_URL}/api/v1{path}"
-    with tracer.start_as_current_span("api.call") as span:
-        span.set_attribute("api.endpoint", path)
-        span.set_attribute("api.method", "GET")
-        try:
-            response = requests.get(
-                url, params=params,
-                headers={"Authorization": f"Bearer {_service_token()}"},
-                timeout=REQUEST_TIMEOUT_SECONDS,
-            )
-        except requests.exceptions.ConnectionError:
-            span.set_attribute("api.status_code", 0)
-            logger.warning("agent_api_unavailable", operation="api_call", endpoint=path)
-            return False, (
-                "The loan system's API is unavailable right now, so I cannot "
-                "fetch live data. Please try again shortly."
-            )
-        except requests.exceptions.Timeout:
-            span.set_attribute("api.status_code", 0)
-            logger.warning("agent_api_timeout", operation="api_call", endpoint=path)
-            return False, "The loan system took too long to respond. Please try again."
-
-        span.set_attribute("api.status_code", response.status_code)
-        if response.status_code == 404:
-            return False, "not found"
-        if response.status_code >= 400:
-            logger.warning("agent_api_error", operation="api_call",
-                           endpoint=path, status_code=response.status_code)
-            return False, f"The loan system returned an error (status {response.status_code})."
-        return True, response.json()
+# `API_BASE_URL` is re-exported above so that the trainer's TC-01-P3-EXEC-06 —
+# which patches the environment variable and reloads this module — still sees
+# the value it expects on this module. The HTTP work itself lives in
+# app/services/loan_api_client.py, shared with Phase 4's MCP tools and Phase 5's
+# data collector, so there is one definition of "call the loan API" rather than
+# three that drift apart.
 
 
 def _call_tool_span(tool_name: str, input_repr: str, fn):
@@ -150,7 +92,7 @@ def get_application_details(application_id: str) -> str:
     applications, or about a person rather than a loan. Give it just the
     number, as a string, such as "5"."""
     def run():
-        ok, data = _api_get(f"/applications/{application_id}")
+        ok, data = api_get(f"/applications/{application_id}")
         if not ok:
             if data == "not found":
                 return "Application not found."
@@ -184,7 +126,7 @@ def list_applications(status: str = "", loan_type: str = "") -> str:
             params["status"] = status
         if loan_type:
             params["loan_type"] = loan_type
-        ok, data = _api_get("/applications", params=params)
+        ok, data = api_get("/applications", params=params)
         if not ok:
             return data
         items = data.get("items", [])
@@ -208,7 +150,7 @@ def get_dashboard_summary() -> str:
     the total amount requested. Do not use this for a question about one
     specific application or applicant."""
     def run():
-        ok, data = _api_get("/dashboard/summary")
+        ok, data = api_get("/dashboard/summary")
         if not ok:
             return data
         lines = [
@@ -252,7 +194,7 @@ def get_applicant_details(applicant_id: str) -> str:
     questions about an application's status, use get_application_details for
     that."""
     def run():
-        ok, data = _api_get(f"/applicants/{applicant_id}")
+        ok, data = api_get(f"/applicants/{applicant_id}")
         if not ok:
             if data == "not found":
                 return "Applicant not found."
