@@ -39,6 +39,16 @@ Newest entries at the top. Short on purpose.
 
 ## The log
 
+## 2026-09-06 — Session 34: Phase 3's tests, run for the first time — 23 of 23 pass
+
+**Asked for:** the unattended run continues. `agent/` and `tests/phase3/` both existed from an earlier session but nobody had ever run `pytest tests/phase3`, so nobody knew whether Phase 3 actually worked.
+**Built:** nothing new — this was verification, not construction. Ran the suite for the first time and found three failures, all genuine bugs rather than a broken agent: our own test checking for "do not use" in a tool's description tripped over the description wrapping onto two lines (a whitespace bug in the test, fixed by collapsing whitespace before comparing); the trainer's own status-query test checks for the literal enum spelling `under_review` with an underscore, but a correctly-behaving agent writes "under review" in plain English — the same class of bug as T-36, where the trainer's own test would fail against any correct implementation, so this copy now accepts either spelling with the reason written next to it; and the LangSmith trace test failed because the very first trace this project (`AI-Readiness-POC-01-P3`) ever received needed a moment to create the project server-side before it could be queried — not a longer sleep but a genuine "does not exist yet", fixed with a short retry loop instead of a fixed wait. After the three fixes, **all 23 pass, none skipped** (20 trainer's + 3 ours).
+**Found:** manually running the agent outside pytest first (`run_agent("What is the status of application 1?", ...)`) was worth doing before touching the tests — it showed the actual answer, "under review" with a space, which is what made the second bug obvious rather than a guess.
+**Realised:** Phase 3 has no screen of its own — `agent/` is backend-only reasoning; the trainer's plan puts the actual chat interface in Phase 4 (`mcp_server/chat_interface.py`). So "inspect it, don't just test it" for this phase means driving the agent directly with a range of real questions, which the manual run plus the existing 404/API-down/out-of-scope tests already cover.
+**Next:** Phase 4 — the MCP server and the staff chat interface, 25 tests, not started yet.
+
+---
+
 ## 2026-09-06 — Session 33: Piece 19, and an unattended run through to Phase 5
 
 **Asked for:** Rohit is away from the keyboard. He asked for everything left to be built in one continuous run: Piece 19, then Phase 3's tests (written but never run), then Phase 4, then Phase 5, then the Manager's Morning Briefing, then an honest report — deciding things myself where he would normally be asked, and writing those decisions down instead of waiting.

@@ -67,7 +67,10 @@ def test_every_description_says_when_not_to_use_it():
     end-to-end tests, so it is worth asserting rather than hoping.
     """
     for tool in ALL_FIVE:
-        assert "do not use" in tool.description.lower(), (
+        # The docstrings wrap onto several lines, so "do not\n    use" is a
+        # false negative here — collapse all whitespace before comparing.
+        flat = " ".join(tool.description.lower().split())
+        assert "do not use" in flat, (
             f"{tool.name}'s description never says when not to use it"
         )
 

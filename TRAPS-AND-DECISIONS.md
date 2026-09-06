@@ -245,6 +245,20 @@ A suffixed name fails both instantly. **Fix: Gemini, the default, uses the bare 
 
 # Settled
 
+### 2026-09-06 · T-61 — The trainer's Phase 3 status-query test checks the wrong spelling
+
+**What's wrong:** `TC-01-P3-E2E-01` checks the agent's plain-English answer for the literal enum value `under_review`, underscore and all. A correctly working agent writes "the application is currently **under review**" — a space, because that is how English works — so the check fails against an agent that is doing exactly what it should. Same shape of bug as T-36 in Phase 1: the trainer's own test would fail on any implementation that behaves the way the phase is asking it to behave.
+
+**Chosen:** our copy of the test accepts either spelling, with the reason written next to it rather than silently changed. Confirmed first by running the agent directly (`run_agent("What is the status of application 1?", ...)`) and reading its actual answer before touching the test, so the fix is based on what the agent really said, not a guess.
+
+### 2026-09-06 · T-62 — A brand-new LangSmith project isn't queryable within 3 seconds
+
+**What's wrong:** `TC-01-P3-E2E-06` sends one trace, sleeps 3 seconds, then asks LangSmith for that project's runs. The very first trace a *new* project name ever receives has to create the project on LangSmith's server before anything can query it — this is slower than 3 seconds and raises `LangSmithNotFoundError`, not an empty list. It looks like "no traces yet" but is really "the project doesn't exist yet".
+
+**Chosen:** replaced the fixed sleep with a short retry loop (up to six tries, 2.5s apart) that catches `LangSmithNotFoundError` and keeps trying. Confirmed the project (`AI-Readiness-POC-01-P3`) exists now by listing LangSmith's projects directly — this was purely a cold-start problem, not a configuration bug.
+
+---
+
 ### 2026-09-06 · D-17 — Charts on the dashboard
 **Answer: horizontal bars, no pie chart.** Rohit asked for pie charts; the colour validator showed the trainer's five mandated status colours cannot carry a pie (purple vs blue ΔE 0.4 under red-green colour blindness, red vs orange ΔE 8.7 with normal vision — see T-38). Bars with the status name written beside each one are accessible and give a real answer if an ADH asks. Loan type uses a single blue shade, since colour there means quantity, not identity.
 

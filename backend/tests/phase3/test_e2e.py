@@ -22,14 +22,27 @@ def _tools_used(result) -> list[str]:
 
 
 def test_agent_answers_status_query(running_api, executor):
-    """TC-01-P3-E2E-01: a question about one application gets a real status."""
+    """
+    TC-01-P3-E2E-01: a question about one application gets a real status.
+
+    The trainer's own version of this test checks for the literal enum
+    spelling, "under_review", with the underscore. A correct agent does not
+    write like that — it answers in plain English, "is currently under
+    review", with a space. That is the whole point of putting an LLM in
+    front of the data; forcing it to parrot the database's own spelling back
+    verbatim would be a worse answer for no test that actually needs it. So
+    this copy checks for either spelling, the same way T-36 adapted a Phase 1
+    test that would have failed against any correct implementation.
+    """
     from agent.agent import run_agent
 
     result = run_agent("What is the status of application 1?", executor)
     output = result.get("output", "").lower()
 
     assert len(output) > 10
-    assert any(status in output for status in STATUSES + ["not found"])
+    normalised = output.replace("_", " ")
+    assert any(status in output or status.replace("_", " ") in normalised
+               for status in STATUSES + ["not found"])
 
 
 def test_agent_uses_multiple_tools(running_api, executor):
@@ -111,11 +124,21 @@ def test_agent_refuses_out_of_scope(running_api, executor):
 
 
 def test_full_reasoning_chain_traced(running_api, executor):
-    """TC-01-P3-E2E-06: the reasoning shows up in this phase's LangSmith project."""
+    """
+    TC-01-P3-E2E-06: the reasoning shows up in this phase's LangSmith project.
+
+    The very first trace this project (`AI-Readiness-POC-01-P3`) ever
+    receives has to create the project on LangSmith's side before anyone can
+    query it, and that can take longer than the trainer's fixed 3-second
+    sleep — the project genuinely does not exist yet, not just "not synced".
+    `list_runs` raises `LangSmithNotFoundError` in that case, not an empty
+    list, so a plain retry loop is needed rather than a longer sleep.
+    """
     import time
 
     import pytest
     from langsmith import Client
+    from langsmith.utils import LangSmithNotFoundError
 
     from agent.agent import LANGSMITH_PROJECT, run_agent
 
@@ -123,9 +146,16 @@ def test_full_reasoning_chain_traced(running_api, executor):
         pytest.skip("LANGCHAIN_API_KEY is not set")
 
     run_agent("What is the dashboard summary?", executor)
-    time.sleep(3)   # traces are uploaded in the background
 
     client = Client(api_key=settings.langchain_api_key)
-    runs = list(client.list_runs(project_name=LANGSMITH_PROJECT, limit=3))
+    runs: list = []
+    for _ in range(6):   # up to ~15s: traces upload in the background
+        time.sleep(2.5)
+        try:
+            runs = list(client.list_runs(project_name=LANGSMITH_PROJECT, limit=3))
+        except LangSmithNotFoundError:
+            continue   # the project itself hasn't been created server-side yet
+        if runs:
+            break
 
     assert len(runs) > 0, f"No traces found in {LANGSMITH_PROJECT}"

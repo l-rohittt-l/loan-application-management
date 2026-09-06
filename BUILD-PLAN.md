@@ -908,6 +908,12 @@ Shown on the application detail page in its own panel, and it means every applic
 
 ---
 
+## Piece 20 and 21 — Dashboard and activity page
+
+Both built in Session 28, before this file's entries for them were written up. See `PROGRESS-LOG.md`, session 28, for what changed.
+
+---
+
 ## Piece 21 — Activity page
 
 **The toolbar** currently puts seven controls in one crowded row. It becomes: a search box, then a compact filter row, then an expandable "more filters" area for the date range and record lookup. Everything stays — nothing is removed — it is just no longer all shouting at once.
@@ -915,6 +921,16 @@ Shown on the application detail page in its own panel, and it means every applic
 **The table** loses the raw data column. Each row becomes: when, who (with an "AI" tag and who it acted for, when it was an agent), what happened in plain words, and which record. A "View" control on each row opens a **modal** with the full story — every field laid out as labelled rows, the technical details formatted properly rather than dumped as one string, and the request id shown as something you could quote to a developer.
 
 **Plain-word action names.** `status_changed` becomes "Status changed", `eligibility_checked` becomes "Eligibility checked", and so on, with a small icon per kind of action.
+
+---
+
+# PHASE 3 — the agent with five tools
+
+**20% of the marks · 20 tests · 14 to pass.**
+
+`agent/tools.py`, `agent/prompts.py`, `agent/summarizer.py` and `agent/agent.py` were built in the session that ended with "Phase 3 tests (written, not yet run)" — five tools reading live data over the same shared `loan_api_client.py` Phase 4 and 5 also use, a ReAct-style agent built with LangChain, and a summarizer for any tool answer over roughly 2000 characters. No front-end: this phase is reasoning only, and the trainer's own plan puts the chat screen in Phase 4.
+
+This run's job was to actually run `tests/phase3/` for the first time and inspect the phase, not to build it again. See PROGRESS-LOG.md, Session 34, and T-61/T-62 in `TRAPS-AND-DECISIONS.md` for what that found: two bugs in the tests themselves (one ours, one the trainer's own — same class as T-36) and no bugs in the agent's own behaviour. **All 23 tests pass, none skipped**, after those two fixes plus a whitespace-in-description assertion fix. Tag `v0.3.0`.
 
 ---
 
