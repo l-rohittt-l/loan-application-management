@@ -668,7 +668,7 @@ Split into five pieces so each one can be read and changed before the next start
 
 | # | Piece | What it fixes |
 |---|---|---|
-| **17** | The design system | No colour theme; plain navigation. Everything else sits on this. |
+| ~~17~~ | ~~The design system~~ | **Done 2026-09-06.** Tag `v0.1.1`. |
 | **18** | Applications list + new application form | Both look basic; filters are cramped |
 | **19** | Automatic eligibility + stored summary | Eligibility is manual and minimal; nothing is recorded |
 | **20** | Dashboard | Needs real charts |

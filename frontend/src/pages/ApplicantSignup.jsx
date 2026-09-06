@@ -5,6 +5,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { api, errorMessage } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import ErrorBanner from "../components/ErrorBanner";
+import Button from "../components/ui/Button";
+import Icon from "../components/ui/Icon";
 import {
   EMPLOYMENT, checkCreditScore, checkDateOfBirth, checkEmail, checkIncome, checkName,
   checkPassword, checkPhone, collect,
@@ -82,7 +84,12 @@ export default function ApplicantSignup() {
   );
 
   return (
+    <div className="auth-wrap">
     <div className="auth-card auth-card-wide">
+      <div className="auth-brand">
+        <span className="brand-mark"><Icon name="rupee" size={18} /></span>
+        <strong>Loan Application Management</strong>
+      </div>
       <h1>Create your account</h1>
       <p className="muted">Tell us about yourself once. Every application uses these details.</p>
       <ErrorBanner message={error} onClose={() => setError("")} />
@@ -106,13 +113,14 @@ export default function ApplicantSignup() {
           {field("years_with_employer", "Years in current job (optional)", { type: "number", step: "0.5", min: 0 }, "0.5 means six months")}
           {field("existing_monthly_emi", "Existing monthly EMIs (₹)", { type: "number", min: 0 }, "Other loans you already pay")}
         </div>
-        <button type="submit" className="btn btn-primary" disabled={busy}>
+        <Button type="submit" variant="primary" loading={busy}>
           {busy ? "Creating…" : "Create account"}
-        </button>
+        </Button>
       </form>
-      <p className="muted">
+      <div className="auth-foot">
         Already have an account? <Link to="/login">Sign in</Link>
-      </p>
+      </div>
+    </div>
     </div>
   );
 }

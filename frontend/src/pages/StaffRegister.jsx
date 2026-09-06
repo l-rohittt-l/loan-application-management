@@ -6,6 +6,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { api, errorMessage } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import ErrorBanner from "../components/ErrorBanner";
+import Button from "../components/ui/Button";
+import Icon from "../components/ui/Icon";
 import { checkEmail, checkName, checkPassword, collect } from "../utils/validation";
 
 export default function StaffRegister() {
@@ -42,7 +44,12 @@ export default function StaffRegister() {
   }
 
   return (
+    <div className="auth-wrap">
     <div className="auth-card">
+      <div className="auth-brand">
+        <span className="brand-mark"><Icon name="rupee" size={18} /></span>
+        <strong>Loan Application Management</strong>
+      </div>
       <h1>Staff account</h1>
       <p className="muted">For loan officers. Manager accounts are created by the bank.</p>
       <ErrorBanner message={error} onClose={() => setError("")} />
@@ -63,13 +70,14 @@ export default function StaffRegister() {
           {errors.password && <span className="field-error">{errors.password}</span>}
           <span className="hint">At least 8 characters, one capital letter, one digit.</span>
         </label>
-        <button type="submit" className="btn btn-primary" disabled={busy}>
+        <Button type="submit" variant="primary" loading={busy} style={{ width: "100%" }}>
           {busy ? "Creating…" : "Create staff account"}
-        </button>
+        </Button>
       </form>
-      <p className="muted">
+      <div className="auth-foot">
         Already registered? <Link to="/login">Sign in</Link>
-      </p>
+      </div>
+    </div>
     </div>
   );
 }

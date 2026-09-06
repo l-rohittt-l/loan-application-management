@@ -39,6 +39,16 @@ Newest entries at the top. Short on purpose.
 
 ## The log
 
+## 2026-09-06 — Session 27: Piece 17, the design system
+
+**Asked for:** build the design system, after Rohit chose bars over pie charts.
+**Built:** a new look for the whole app. The top navigation strip is gone, replaced by a dark slate sidebar with icons, an active-link marker, and the signed-in person at the bottom. The stylesheet was rewritten around named colour tokens. Buttons now have a real pressed state that moves down 1px, a keyboard focus ring, and a loading spinner. New reusable pieces: an icon set drawn in one file with no library, a Button, a Modal that closes on Escape and keeps the keyboard inside it, and an EmptyState. The three sign-in pages got a proper centred layout with the brand on top.
+**Found:** nothing new. The build passes and both servers run.
+**Realised:** keeping every old class name working meant the existing pages picked up the new look without being rewritten. The next four pieces refine each page rather than repairing it.
+**Next:** Rohit looks at it and says what he thinks. Then Piece 18, the applications list and the form.
+
+---
+
 ## 2026-09-06 — Session 26: Planning the UI overhaul
 
 **Asked for:** Rohit used the app as the manager and found the look plain across the board — no colour theme, basic navigation, cramped filters, a dull form, no real charts, and an activity page showing raw data instead of readable detail. He also wants the eligibility check to run automatically and to be permanently recorded on each application.

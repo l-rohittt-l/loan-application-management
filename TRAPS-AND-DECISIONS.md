@@ -136,6 +136,9 @@ No decision needed. These break something quietly if forgotten.
 
 # Settled
 
+### 2026-09-06 · D-17 — Charts on the dashboard
+**Answer: horizontal bars, no pie chart.** Rohit asked for pie charts; the colour validator showed the trainer's five mandated status colours cannot carry a pie (purple vs blue ΔE 0.4 under red-green colour blindness, red vs orange ΔE 8.7 with normal vision — see T-38). Bars with the status name written beside each one are accessible and give a real answer if an ADH asks. Loan type uses a single blue shade, since colour there means quantity, not identity.
+
 ### 2026-09-06 · D-16 — Two more Applicant fields for Phase 5
 **Answer: add both.** `years_with_employer` (decimal, 0.5 = six months) and `existing_monthly_emi` (rupees, default 0). Both optional so no test breaks. When missing, Phase 5 falls back to the trainer's assumptions. Employment length also lets us check the manual's rule of 6 months salaried / 2 years self-employed.
 

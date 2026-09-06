@@ -3,6 +3,8 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { errorMessage } from "../api/client";
 import ErrorBanner from "../components/ErrorBanner";
+import Button from "../components/ui/Button";
+import Icon from "../components/ui/Icon";
 
 export default function Login() {
   const { login } = useAuth();
@@ -29,28 +31,34 @@ export default function Login() {
   }
 
   return (
-    <div className="auth-card">
-      <h1>Sign in</h1>
-      <p className="muted">Customers and bank staff sign in here.</p>
-      <ErrorBanner message={error} onClose={() => setError("")} />
-      <form onSubmit={handleSubmit} noValidate>
-        <label>
-          Email
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required />
-        </label>
-        <label>
-          Password
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required />
-        </label>
-        <button type="submit" className="btn btn-primary" disabled={busy}>
-          {busy ? "Signing in…" : "Sign in"}
-        </button>
-      </form>
-      <p className="muted">
-        New customer? <Link to="/signup">Create an account</Link>
-        <br />
-        Bank staff? <Link to="/register">Register a staff account</Link>
-      </p>
+    <div className="auth-wrap">
+      <div className="auth-card">
+        <div className="auth-brand">
+          <span className="brand-mark"><Icon name="rupee" size={18} /></span>
+          <strong>Loan Application Management</strong>
+        </div>
+        <h1>Sign in</h1>
+        <p className="muted">Customers and bank staff sign in here.</p>
+        <ErrorBanner message={error} onClose={() => setError("")} />
+        <form onSubmit={handleSubmit} noValidate>
+          <label>
+            Email
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required />
+          </label>
+          <label>
+            Password
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required />
+          </label>
+          <Button type="submit" variant="primary" loading={busy} style={{ width: "100%" }}>
+            {busy ? "Signing in…" : "Sign in"}
+          </Button>
+        </form>
+        <div className="auth-foot">
+          New customer? <Link to="/signup">Create an account</Link>
+          <br />
+          Bank staff? <Link to="/register">Register a staff account</Link>
+        </div>
+      </div>
     </div>
   );
 }
