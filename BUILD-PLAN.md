@@ -669,7 +669,7 @@ Split into five pieces so each one can be read and changed before the next start
 | # | Piece | What it fixes |
 |---|---|---|
 | ~~17~~ | ~~The design system~~ | **Done 2026-09-06.** Tag `v0.1.1`. |
-| ~~18~~ | ~~Applications list + new application form~~ | **Done 2026-09-06.** Tag `v0.1.3`. |
+| ~~18~~ | ~~Applications list + new application form~~ | **Done 2026-09-06.** Tag `v0.1.4`. |
 | **19** | Automatic eligibility + stored summary | Eligibility is manual and minimal; nothing is recorded |
 | ~~20~~ | ~~Dashboard~~ | **Done 2026-09-06.** Tag `v0.1.2`. |
 | ~~21~~ | ~~Activity page~~ | **Done 2026-09-06.** Tag `v0.1.2`. |
@@ -880,5 +880,5 @@ Shown on the application detail page in its own panel, and it means every applic
 | 13 | The trainer's 20 tests | 2026-09-06 | `pytest.ini`, `tests/conftest.py`, `tests/phase1/test_unit.py`, `test_api.py`, `test_db.py`. **All 20 pass** (27 runs with parametrised cases). One documented adaptation, T-36. Tag `v0.0.13`. |
 | 14 | React front-end | 2026-09-06 | `frontend/` on Vite with React 18, Axios and React Router. Nine pages, six components, the API client with token and 401 handling, client-side checks mirroring the server. Builds clean. Added `GET /applicants/me` to the backend so an applicant can load their own profile. Tag `v0.0.14`. |
 | 15 | Streamlit front-end | 2026-09-06 | `frontend-streamlit/app.py`. Sidebar login with the token in `st.session_state`; tabs for the list (filters, status colours, detail with history and documents, status update for staff), the form with the eligibility check, and the dashboard. Serves on 8501. Tag `v0.0.15`. |
-| 18 | Applications list and the form | 2026-09-06 | Server-side `search`, `sort_by` and `order` on the list endpoint, all optional so the plain call is unchanged; `tests/ours/test_list_search_sort.py` (7 pass) guards that. Front-end: search box with a 350ms wait, sortable column headings, dates behind a toggle, proper empty state; the form split into three sections with an amount preview and tenure chips. Trainer's 20 still pass. Tag `v0.1.3`. |
+| 18 | Applications list and the form | 2026-09-06 | Server-side `search`, `sort_by` and `order` on the list endpoint, all optional so the plain call is unchanged; `tests/ours/test_list_search_sort.py` (7 pass) guards that. Front-end: search box with a 350ms wait, sortable column headings, dates behind a toggle, proper empty state; the form split into three sections with an amount preview and tenure chips. Trainer's 20 still pass. Tag `v0.1.4`. |
 | 16 | Seed data, report, submission files | 2026-09-06 | `backend/seed.py` (2 staff, 6 customers, 8 applications, 58 activity rows), `README.md`, `MY_SCORES.md`, `results/phase1-results.xml` (27 runs, 0 failures). Tags `v0.0.16` and **`v0.1.0`**. |
