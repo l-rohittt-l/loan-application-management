@@ -4,8 +4,9 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api, errorMessage } from "../api/client";
 import ErrorBanner from "../components/ErrorBanner";
+import Button from "../components/ui/Button";
 import { EMPLOYMENT, checkCreditScore, checkDateOfBirth, checkEmail, checkIncome, checkName, checkPhone, collect } from "../utils/validation";
-import { label } from "../utils/format";
+import { label, rupees } from "../utils/format";
 
 const empty = {
   name: "", email: "", phone: "", annual_income: "", employment_status: "salaried",
@@ -57,30 +58,69 @@ export default function NewApplicant() {
     </label>
   );
 
+  const income = Number(form.annual_income);
+
   return (
     <>
-      <div className="page-head"><h1>New borrower profile</h1></div>
+      <div className="page-head">
+        <div>
+          <h1>New borrower profile</h1>
+          <p className="sub">
+            The customer's record at the bank. Once it exists you can apply for a
+            loan on their behalf.
+          </p>
+        </div>
+      </div>
       <ErrorBanner message={error} onClose={() => setError("")} />
+
       <div className="card" style={{ maxWidth: 760 }}>
         <form onSubmit={handleSubmit} noValidate>
-          <div className="grid-2">
-            {field("name", "Full name")}
-            {field("email", "Email", { type: "email" })}
-            {field("phone", "Mobile number", { inputMode: "numeric", maxLength: 10 })}
-            {field("annual_income", "Annual income (₹)", { type: "number", min: 1 })}
-            <label>
-              Employment
-              <select value={form.employment_status} onChange={set("employment_status")}>
-                {EMPLOYMENT.map((v) => <option key={v} value={v}>{label(v)}</option>)}
-              </select>
-            </label>
-            {field("credit_score", "CIBIL score (optional)", { type: "number", min: 300, max: 900 })}
-            {field("date_of_birth", "Date of birth (optional)", { type: "date" })}
-            {field("years_with_employer", "Years in current job (optional)", { type: "number", step: "0.5", min: 0 })}
-            {field("existing_monthly_emi", "Existing monthly EMIs (₹)", { type: "number", min: 0 })}
+          <div className="form-section">
+            <p className="form-section-title">Who they are</p>
+            <div className="grid-2">
+              {field("name", "Full name")}
+              {field("email", "Email", { type: "email" })}
+              {field("phone", "Mobile number", { inputMode: "numeric", maxLength: 10 }, "10 digits, starting 6 to 9")}
+              {field("date_of_birth", "Date of birth", { type: "date" }, "Optional, but age is one of the lending rules")}
+            </div>
           </div>
-          <div style={{ display: "flex", gap: "0.75rem" }}>
-            <button type="submit" className="btn btn-primary" disabled={busy}>{busy ? "Saving…" : "Create profile"}</button>
+
+          <div className="form-section">
+            <p className="form-section-title">What they earn and owe</p>
+            <div className="grid-2">
+              <label>
+                Annual income (₹)
+                <input value={form.annual_income} onChange={set("annual_income")} type="number" min={1} />
+                {errors.annual_income
+                  ? <span className="field-error">{errors.annual_income}</span>
+                  : income > 0
+                    ? <span className="amount-preview">{rupees(income)} a year</span>
+                    : <span className="hint">Before tax, as declared.</span>}
+              </label>
+              <label>
+                Employment
+                <select value={form.employment_status} onChange={set("employment_status")}>
+                  {EMPLOYMENT.map((v) => <option key={v} value={v}>{label(v)}</option>)}
+                </select>
+                <span className="hint">Unemployed applicants cannot be approved.</span>
+              </label>
+              {field("years_with_employer", "Years in current job", { type: "number", step: "0.5", min: 0 },
+                     "Optional. Salaried need 6 months, self-employed 2 years.")}
+              {field("existing_monthly_emi", "Existing monthly EMIs (₹)", { type: "number", min: 0 },
+                     "Other loan payments they already make. Zero if none.")}
+            </div>
+          </div>
+
+          <div className="form-section">
+            <p className="form-section-title">Credit</p>
+            <div className="grid-2">
+              {field("credit_score", "CIBIL score", { type: "number", min: 300, max: 900 },
+                     "Optional, 300 to 900. A personal loan needs one on file.")}
+            </div>
+          </div>
+
+          <div className="form-actions">
+            <Button type="submit" variant="primary" icon="check" loading={busy}>Create profile</Button>
             <Link className="btn btn-ghost" to="/applications/new">Cancel</Link>
           </div>
         </form>

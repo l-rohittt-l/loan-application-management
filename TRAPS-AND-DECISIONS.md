@@ -104,6 +104,16 @@ The quick way to tell, before doubting the code: open `http://localhost:8000/ope
 
 **T-41 · Sorting a paged list in the browser is wrong, not just slower.** The list hands back 20 rows at a time. Sorting those in the browser orders the page, not the data, so "largest amount first" shows the largest of *this page* while a bigger one sits on page 3 — with an arrow next to the column implying otherwise. Sorting and searching both belong on the server for any list that is paged. Proved on the seed data: sorting by amount brings a ₹40,00,000 application onto page 1 from page 2.
 
+### From inspecting the whole app (2026-09-06)
+
+**T-42 · Styling scoped to `form` silently skips the filter toolbars.** The stylesheet said `form input, form select, form textarea`. Both filter toolbars — applications and activity — are plain `<div>`s, not forms, so their dropdowns inherited nothing: no border, no padding, and the little label sat *inline beside* the box instead of above it. On screen it read as a broken page, and it was on the first screen anyone sees. Nothing in the code looked wrong, and the build and lint were clean; only a screenshot showed it. Fixed by styling `input, select, textarea` wherever they appear rather than only inside a form. **Rule of thumb: never scope a control's look to its parent element, because controls move.**
+
+**T-43 · Two things that look broken in a full-page screenshot but are not.** A `position: fixed` modal backdrop and a `position: sticky` sidebar are both painted once, at the window's size. Ask a headless browser for a full-page screenshot of a page taller than the window and both appear to stop halfway down, leaving a white band. In a real browser they are correct. Check the CSS before "fixing" either.
+
+**T-44 · React StrictMode makes every page load its data twice, in development only.** `main.jsx` wraps the app in `<React.StrictMode>`, which deliberately runs every effect twice to expose bugs. So the applications list asks the server twice on load when running `npm run dev`. It does **not** happen in the built app. Worth knowing before chasing a double-fetch that is not there — and worth being able to say out loud in a code walkthrough. Proved separately that the search box's own debounce is correct: typing five letters causes exactly one request.
+
+**T-45 · Irreversible actions had no confirmation.** `rejected` and `disbursed` are both terminal in the status machine — nothing moves out of them — yet both were one click on a dropdown away with no "are you sure". Now each opens a dialog naming the application, the status it is moving from and to, and the remarks that will be recorded. The server was always right; this is about not letting a person destroy something by accident.
+
 ### From the mentor chats
 
 **T-09 · Streamlit was overruled, but not replaced.** The Phase 2–4 tests check Streamlit; the demo runs React. Build both. Chat logic lives in the backend, both front-ends are thin screens.

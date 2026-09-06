@@ -4,14 +4,33 @@
 // The sidebar links change with the role, so an applicant, an officer and a
 // manager each see only what they can actually use (D-06, D-07).
 
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import Icon from "./ui/Icon";
 import { label } from "../utils/format";
 
+/**
+ * Which sidebar link counts as "where you are".
+ *
+ * React Router's own matching was not quite right here. Without `end`,
+ * "Applications" also lit up while you were on "New application", because
+ * /applications/new starts with /applications. With `end`, opening an
+ * application (/applications/5) lit up nothing at all, so the sidebar went
+ * blank and you lost your place. Neither is what a person expects, so the rule
+ * is written out: an application's own page belongs under Applications, and
+ * the new-application form does not.
+ */
+function isActive(to, pathname) {
+  if (to === "/applications") {
+    return pathname === "/applications" || /^\/applications\/\d+$/.test(pathname);
+  }
+  return pathname === to || pathname.startsWith(`${to}/`);
+}
+
 export default function Layout() {
   const { user, logout, isApplicant, isStaff, isManager } = useAuth();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
 
   function handleLogout() {
     logout();
@@ -50,7 +69,7 @@ export default function Layout() {
 
         <nav className="sidebar-nav" aria-label="Main">
           {links.map((l) => (
-            <NavLink key={l.to} to={l.to} end={l.to === "/applications"}>
+            <NavLink key={l.to} to={l.to} className={isActive(l.to, pathname) ? "active" : undefined}>
               <Icon name={l.icon} size={18} />
               <span>{l.text}</span>
             </NavLink>

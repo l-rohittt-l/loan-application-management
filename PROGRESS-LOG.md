@@ -39,6 +39,16 @@ Newest entries at the top. Short on purpose.
 
 ## The log
 
+## 2026-09-06 — Session 31: An inspection of the whole app, and the fixes it found
+
+**Asked for:** Rohit was tired with a presentation the next day, so he asked me to go through Phase 1 as an inspector, find whatever was not working or looked wrong, and fix it without checking in at every step.
+**Built:** two inspections rather than a read-through. One walks every backend address as all three roles — about seventy checks covering permissions, validation, every status move and every error code — and found **nothing wrong**. The second drives a real headless browser, signs in as manager, officer and customer, visits every page, screenshots it and reports any browser error. That one found the things reading could not.
+**Found:** the worst was invisible in the code. The form styles were written as `form input, form select`, but the filter toolbars on the applications and activity pages are plain divs, not forms — so **those dropdowns had no styling at all**, rendering as raw browser controls with their labels colliding into them. It looked broken, and it was on the first screen of the demo. Also: the application detail page had never been brought up to the new design, and still printed the stored activity as raw data in a table cell — the same complaint that was fixed on the activity page but never here. Link-shaped buttons carried an underline. Missing rupee amounts rendered as an empty gap next to their label, which reads as a bug rather than "never recorded".
+**Realised:** rejecting a loan could not be undone and was one careless click away, with nothing asking "are you sure". It now asks, showing what is moving where. Two things that looked like faults were not: the sidebar and the modal backdrop only appear to stop halfway down a full-page screenshot, because both are correctly pinned to the window; and the list asking the server twice on load is React's StrictMode double-running effects in development only, which does not happen in the built app.
+**Next:** Piece 19 — automatic eligibility in the form, and the eligibility summary stored on each application. It is the last planned piece of the Phase 1 polish.
+
+---
+
 ## 2026-09-06 — Session 30: Piece 18, the applications list and the form
 
 **Asked for:** build Piece 18 — tidy the crowded filters on the applications list, let people sort by clicking a column, and turn the submission form from one long stack of boxes into something readable.

@@ -7,70 +7,18 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, errorMessage } from "../api/client";
+import ActivityDetails from "../components/ActivityDetails";
 import ErrorBanner from "../components/ErrorBanner";
 import Spinner from "../components/Spinner";
 import Button from "../components/ui/Button";
 import EmptyState from "../components/ui/EmptyState";
 import Icon from "../components/ui/Icon";
 import Modal from "../components/ui/Modal";
-import { formatDateTime, label, rupees } from "../utils/format";
-
-// Plain words and an icon for each kind of event, instead of the stored name.
-const ACTIONS = {
-  staff_registered:    { text: "Staff account created",     icon: "user" },
-  applicant_signed_up: { text: "Customer signed up",        icon: "user" },
-  login_succeeded:     { text: "Signed in",                 icon: "shield" },
-  login_failed:        { text: "Sign-in failed",            icon: "alert" },
-  applicant_created:   { text: "Borrower profile created",  icon: "user" },
-  application_submitted: { text: "Application submitted",   icon: "file" },
-  status_changed:      { text: "Status changed",            icon: "activity" },
-  document_added:      { text: "Document added",            icon: "file" },
-  document_verified:   { text: "Document verified",         icon: "check" },
-  eligibility_checked: { text: "Eligibility checked",       icon: "shield" },
-  dashboard_viewed:    { text: "Dashboard viewed",          icon: "dashboard" },
-};
-const describe = (action) => ACTIONS[action] || { text: label(action), icon: "info" };
+import { ACTIONS, describe } from "../utils/activity";
+import { formatDateTime, label } from "../utils/format";
 
 const ENTITY_TYPES = ["application", "applicant", "document", "user"];
 const EMPTY = { actor_id: "", actor_type: "", action: "", entity_type: "", entity_id: "", from_date: "", to_date: "" };
-
-// Turn a stored detail key into something readable.
-const DETAIL_LABELS = {
-  from: "Changed from", to: "Changed to", remarks: "Remarks", reason: "Reason",
-  loan_type: "Loan type", amount: "Amount", tenure_months: "Tenure",
-  doc_type: "Document type", file_name: "File name", application_id: "Application",
-  eligible: "Passed eligibility", problem_count: "Rules not met", email: "Email",
-};
-
-function DetailValue({ name, value }) {
-  if (value === null || value === undefined || value === "") return <span className="muted">not recorded</span>;
-  if (typeof value === "boolean") return value ? <span className="tick">Yes</span> : <span className="cross">No</span>;
-  if (name === "amount") return rupees(value);
-  if (name === "tenure_months") return `${value} months`;
-  if (name === "from" || name === "to") return label(value);
-  if (name === "doc_type" || name === "loan_type") return label(value);
-  return String(value);
-}
-
-/** The stored details are a small piece of JSON. Show them as labelled rows. */
-function Details({ raw }) {
-  let parsed = null;
-  try { parsed = raw ? JSON.parse(raw) : null; } catch { parsed = null; }
-
-  if (!parsed || Object.keys(parsed).length === 0) {
-    return <p className="muted">Nothing further was recorded for this event.</p>;
-  }
-  return (
-    <dl className="kv">
-      {Object.entries(parsed).map(([key, value]) => (
-        <div key={key} style={{ display: "contents" }}>
-          <dt>{DETAIL_LABELS[key] || label(key)}</dt>
-          <dd><DetailValue name={key} value={value} /></dd>
-        </div>
-      ))}
-    </dl>
-  );
-}
 
 export default function Activity() {
   const [filters, setFilters] = useState(EMPTY);
@@ -291,7 +239,7 @@ export default function Activity() {
 
             <hr className="divider" />
             <h3>Details</h3>
-            <Details raw={chosen.details} />
+            <ActivityDetails raw={chosen.details} />
 
             <hr className="divider" />
             <h3>If something looked wrong</h3>
