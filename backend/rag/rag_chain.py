@@ -44,9 +44,11 @@ from langchain_core.runnables import RunnableLambda, RunnablePassthrough
 from app.config import settings
 from app.utils.logging_config import configure_logging
 from app.utils.otel_config import get_tracer, setup_telemetry
-from llm_provider import describe, get_collection_name, get_embeddings, get_llm
+from llm_provider import describe, enable_langsmith, get_collection_name, get_embeddings, get_llm
 
 logger = structlog.get_logger()
+
+LANGSMITH_PROJECT = "AI-Readiness-POC-01-P2"
 
 # The exact sentence the Phase 2 spec requires when the manual does not cover
 # the question. The test looks for "don't have", "contact" and "helpdesk".
@@ -156,6 +158,7 @@ def build_rag_chain(k: int | None = None):
     """
     configure_logging()
     setup_telemetry()
+    enable_langsmith(LANGSMITH_PROJECT)
 
     retriever = get_retriever(k)
     llm = get_llm(temperature=0.1)

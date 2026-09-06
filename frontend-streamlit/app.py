@@ -136,7 +136,9 @@ user = st.session_state["user"]
 is_staff = user["role"] in ("loan_officer", "branch_manager")
 is_manager = user["role"] == "branch_manager"
 
-tab_list, tab_new, tab_dash = st.tabs(["Applications", "New application", "Dashboard"])
+tab_list, tab_new, tab_dash, tab_chat = st.tabs(
+    ["Applications", "New application", "Dashboard", "Assistant"]
+)
 
 # ---------------------------------------------------------------------------
 # Tab 1: the list, with filters and status colours, and one application's detail
@@ -332,3 +334,87 @@ with tab_dash:
             with c2:
                 st.markdown("**By loan type**")
                 st.bar_chart({label(k): v for k, v in d["by_loan_type"].items()})
+
+
+# ---------------------------------------------------------------------------
+# Tab 4: the assistant (Phase 2)
+# ---------------------------------------------------------------------------
+# Talks to the same POST /api/v1/chat address the React page uses, so both
+# front-ends get whatever brain sits behind that door — the RAG chain today,
+# the tool-using agent from Phase 3 onwards. Nothing here needs changing when
+# that swap happens.
+#
+# Every answer shows the manual extracts it came from, exactly as the React
+# page does. An assistant that cites its source can be checked; one that does
+# not has to be trusted, and for a bank that difference matters.
+
+# What each brain is called on screen. Mirrors MODES in the React Assistant page.
+CHAT_MODES = {
+    "rag": "Answered from the user manual",
+    "agent": "Read live application data",
+    "review": "Multi-agent review",
+    "empty": "",
+}
+
+SUGGESTED_QUESTIONS = [
+    "What documents are required for a home loan?",
+    "What is the minimum CIBIL score for a personal loan?",
+    "What happens if my application is rejected?",
+]
+
+with tab_chat:
+    st.subheader("Assistant")
+    st.caption(
+        "Ask about loan policy, eligibility, documents or fees. Every answer "
+        "comes from the bank's user manual, and shows you where it came from."
+    )
+
+    st.session_state.setdefault("chat_log", [])
+
+    # The conversation so far, oldest first.
+    for entry in st.session_state["chat_log"]:
+        st.markdown(f"**You:** {entry['question']}")
+        st.markdown(entry["answer"])
+        mode_text = CHAT_MODES.get(entry["mode"], entry["mode"])
+        st.caption(f"{mode_text} · {entry['ms'] / 1000:.1f}s")
+        sources = entry.get("sources") or []
+        if sources:
+            plural = "" if len(sources) == 1 else "s"
+            with st.expander(f"Show the {len(sources)} manual extract{plural} this came from"):
+                for source in sources:
+                    st.code(source.get("chunk_id") or "chunk", language=None)
+                    st.text(source.get("excerpt", ""))
+        st.divider()
+
+    if not st.session_state["chat_log"]:
+        st.info(
+            "I answer only from the bank's user manual. If something is not in "
+            "there, I will say so rather than guess."
+        )
+        st.markdown("**Try asking:**")
+        for question in SUGGESTED_QUESTIONS:
+            st.markdown(f"- {question}")
+
+    with st.form("chat_form", clear_on_submit=True):
+        question = st.text_input("Your question", placeholder="e.g. How long does approval take?")
+        asked = st.form_submit_button("Ask")
+
+    if asked and question.strip():
+        with st.spinner("Thinking…"):
+            answer, err = api("POST", "/chat", json={"message": question.strip()})
+        if err:
+            st.error(err)
+        else:
+            st.session_state["chat_log"].append({
+                "question": question.strip(),
+                "answer": answer.get("answer", ""),
+                "mode": answer.get("mode", "rag"),
+                "sources": answer.get("sources", []),
+                "ms": answer.get("duration_ms", 0.0),
+            })
+            st.rerun()
+
+    if st.session_state["chat_log"]:
+        if st.button("Clear conversation"):
+            st.session_state["chat_log"] = []
+            st.rerun()

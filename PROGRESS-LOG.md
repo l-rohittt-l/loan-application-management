@@ -39,6 +39,16 @@ Newest entries at the top. Short on purpose.
 
 ## The log
 
+## 2026-09-06 — Session 32: Phase 2 actually finished, and a full plan to the end
+
+**Asked for:** Rohit gave me the LangSmith key, said to stop asking him things and decide like a professional, and switched on plan mode so the run to Phase 5 got planned properly rather than built ad hoc. He also said plainly: don't half-build it, and don't let me find bad implementations later like we did in Phase 1.
+**Built:** Phase 2 is now genuinely complete. The LangSmith key is wired in, so the two tracing tests that were *skipping* now pass for real — Phase 2 reads **22 passed, 0 skipped**. And the Streamlit Assistant tab, which the project had committed to but never built, now exists, with the same source-citation panel the React page has rather than a stripped-down version.
+**Found:** two research passes over the trainer's Phase 4 and Phase 5 documents turned up three real bugs in his own reference code — a JWT that expires mid-demo, an HTTP call that crashes the agent on any error that isn't a 404, and a compliance check reading `age_eligible = ... or True`, which never actually checks an age. All three are written up in the new `AI-BUILD-LOG.md` with what I did instead.
+**Realised:** a skipped test reads exactly like a passing one in a summary line. Two of Phase 2's twenty had been skipping all along, and the phase looked finished. Worth remembering for the phases still to come: the number to check is passed-plus-skipped, not passed.
+**Next:** Phase 3's tests and inspection, then Phase 4 (MCP server plus the staff chat interface), then Phase 5 (the four-agent review).
+
+---
+
 ## 2026-09-06 — Session 31: An inspection of the whole app, and the fixes it found
 
 **Asked for:** Rohit was tired with a presentation the next day, so he asked me to go through Phase 1 as an inspector, find whatever was not working or looked wrong, and fix it without checking in at every step.

@@ -31,6 +31,8 @@ Two things this file quietly protects us from
 
 from __future__ import annotations
 
+import os
+
 import structlog
 
 from app.config import settings
@@ -39,6 +41,29 @@ logger = structlog.get_logger()
 
 GEMINI = "gemini"
 OLLAMA = "ollama"
+
+
+def enable_langsmith(project: str) -> bool:
+    """
+    Turn on LangSmith tracing for the given project, if a key is configured.
+
+    LangChain reads `LANGCHAIN_TRACING_V2` and `LANGCHAIN_API_KEY` straight from
+    the process environment at call time, not from our settings object, so this
+    copies them across. Each phase has its own project name
+    (`AI-Readiness-POC-01-P2`, `-P3`, `-P4`, `-P5`) because the trainer's
+    observability tests look for traces in one specific project each, and a
+    single shared project would mix them together.
+
+    Called once per phase, right before building that phase's chain or agent.
+    Safe to call with no key set: it simply leaves tracing off and says so once.
+    """
+    if not settings.langchain_tracing_v2 or not settings.langchain_api_key:
+        return False
+    os.environ["LANGCHAIN_TRACING_V2"] = "true"
+    os.environ["LANGCHAIN_API_KEY"] = settings.langchain_api_key
+    os.environ["LANGCHAIN_PROJECT"] = project
+    logger.info("langsmith_enabled", operation="langsmith_enabled", project=project)
+    return True
 
 
 def current_provider() -> str:

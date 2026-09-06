@@ -81,6 +81,22 @@ class Settings(BaseSettings):
     langchain_api_key: str = ""
     langchain_project: str = "AI-Readiness-POC-01-P2"
 
+    # ---- Phase 3 onwards: the agent's tools call the Phase 1 API over HTTP ----
+    # Read directly from os.environ inside agent/tools.py rather than only
+    # through this settings object, because the trainer's TC-01-P3-EXEC-06
+    # patches the environment variable and reloads the module to prove the
+    # tools notice a different API address. Kept here too so every other file
+    # has one obvious place to look.
+    api_base_url: str = "http://localhost:8000"
+
+    # The agent calls the Phase 1 API as a real signed-in user, not as itself,
+    # because every endpoint is owner-scoped and role-checked (Rule 6, D-06).
+    # Rather than store a token that expires in 24 hours and quietly breaks the
+    # demo the next day, the agent mints a fresh one from this email each time
+    # it starts (see agent/tools.py). It answers with a branch manager's view,
+    # since Phase 3's tools are read-only and a manager can read everything.
+    agent_service_email: str = "anita@bank.com"
+
     @property
     def cors_origin_list(self) -> list[str]:
         """The CORS setting as a Python list."""

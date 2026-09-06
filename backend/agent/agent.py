@@ -1,0 +1,110 @@
+"""
+The ReAct agent: one loop that reads a question, decides which of the five
+tools to call (if any), reads the result, and repeats until it can answer.
+
+ReAct means the model alternates between writing a **Thought** (its reasoning),
+an **Action** (which tool to call and with what input), and reading the
+**Observation** (the tool's answer) — until it decides it knows enough to give
+a **Final Answer**. This is what lets one loop answer "what is the status of
+application 5, and what documents does a home loan need?" by calling two
+different tools and combining what they say.
+
+The prompt is built by hand rather than pulled from LangChain's hub
+(`hub.pull("hwchase17/react")`), for two reasons: `langchain.hub` no longer
+exists at this LangChain version, and pulling a prompt from the internet at
+startup is one more thing that can fail during a demo. This is the same
+prompt shape, held locally.
+"""
+
+from __future__ import annotations
+
+import structlog
+from langchain_classic.agents import AgentExecutor, create_react_agent
+from langchain_core.prompts import PromptTemplate
+
+from agent.prompts import LOAN_AGENT_SYSTEM_PROMPT
+from agent.tools import ALL_TOOLS
+from app.utils.logging_config import configure_logging
+from app.utils.otel_config import get_tracer, setup_telemetry
+from llm_provider import enable_langsmith, get_llm
+
+logger = structlog.get_logger()
+
+LANGSMITH_PROJECT = "AI-Readiness-POC-01-P3"
+
+MAX_ITERATIONS = 8
+
+# The classic ReAct format. `{tools}` and `{tool_names}` are filled in by
+# create_react_agent from the tool list; `{input}` and `{agent_scratchpad}` are
+# filled in on every call.
+REACT_TEMPLATE = LOAN_AGENT_SYSTEM_PROMPT + """
+
+You have access to the following tools:
+
+{tools}
+
+Use the following format exactly:
+
+Question: the input question you must answer
+Thought: you should always think about what to do
+Action: the action to take, must be one of [{tool_names}]
+Action Input: the input to the action
+Observation: the result of the action
+... (this Thought/Action/Action Input/Observation can repeat)
+Thought: I now know the final answer
+Final Answer: the final answer to the original question
+
+Begin!
+
+Question: {input}
+Thought: {agent_scratchpad}"""
+
+
+def build_agent() -> AgentExecutor:
+    """
+    Build the agent executor.
+
+    `max_iterations=8` caps how many Thought/Action rounds the agent may take,
+    so a confused loop cannot run forever. `handle_parsing_errors=True` means a
+    single malformed step is reported back to the model to correct rather than
+    crashing the whole conversation. `return_intermediate_steps=True` is what
+    lets `run_agent` (and the trainer's tests) see which tools actually ran.
+    """
+    configure_logging()
+    setup_telemetry()
+    enable_langsmith(LANGSMITH_PROJECT)
+
+    llm = get_llm(temperature=0)   # fully predictable: the same question picks the same tool
+    prompt = PromptTemplate.from_template(REACT_TEMPLATE)
+    agent = create_react_agent(llm, ALL_TOOLS, prompt)
+
+    return AgentExecutor(
+        agent=agent,
+        tools=ALL_TOOLS,
+        max_iterations=MAX_ITERATIONS,
+        handle_parsing_errors=True,
+        return_intermediate_steps=True,
+    )
+
+
+def run_agent(question: str, executor: AgentExecutor | None = None) -> dict:
+    """
+    Ask the agent one question. Returns the executor's own result dict —
+    `output` (the final answer) and `intermediate_steps` (which tools ran, in
+    order, with what they returned) — which is exactly the shape the trainer's
+    end-to-end tests expect.
+    """
+    if executor is None:
+        executor = build_agent()
+
+    tracer = get_tracer()
+    with tracer.start_as_current_span("agent.reasoning") as span:
+        span.set_attribute("agent.question", question[:200])
+        result = executor.invoke({"input": question})
+        steps = result.get("intermediate_steps", [])
+        span.set_attribute("agent.steps", len(steps))
+        span.set_attribute("agent.tools_used", ",".join(s[0].tool for s in steps))
+        logger.info("agent_reasoning_completed", operation="reasoning",
+                    question=question[:200], steps=len(steps),
+                    tools_used=[s[0].tool for s in steps])
+        return result
