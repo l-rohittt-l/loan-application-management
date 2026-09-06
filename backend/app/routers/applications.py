@@ -59,6 +59,10 @@ def list_applications(
     loan_type: str | None = Query(None),
     from_date: date | None = Query(None, description="Submitted on or after, YYYY-MM-DD"),
     to_date: date | None = Query(None, description="Submitted on or before, YYYY-MM-DD"),
+    search: str | None = Query(None, max_length=100,
+                               description="Part of an applicant's name or email, or an application number"),
+    sort_by: str = Query("submitted_at", description="Column to sort by"),
+    order: str = Query("desc", description="asc or desc"),
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
@@ -78,10 +82,21 @@ def list_applications(
     if from_date and to_date and from_date > to_date:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="from_date must not be after to_date")
+    # Sorting is refused the same way a bad status is, so the whole endpoint
+    # answers with one kind of error rather than two (T-18).
+    if sort_by not in application_service.SORT_COLUMNS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot sort by '{sort_by}'. Allowed: {', '.join(application_service.SORT_COLUMNS)}",
+        )
+    if order not in application_service.SORT_ORDERS:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=f"Invalid order '{order}'. Allowed: asc, desc")
 
     items, total = application_service.list_applications(
         db, viewer=user, status=status_filter, loan_type=loan_type,
-        from_date=from_date, to_date=to_date, page=page, limit=limit,
+        from_date=from_date, to_date=to_date, search=search,
+        sort_by=sort_by, order=order, page=page, limit=limit,
     )
     summaries = [
         ApplicationSummary(

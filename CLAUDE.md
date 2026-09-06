@@ -161,15 +161,15 @@ Rohit is learning Python while building this. Long sentences and clever phrasing
 - When explaining something new, start from the basics and build up. Do not assume he already knows the middle steps.
 - Do not dump everything at once. Answer what was asked.
 
-## Rule 8 — End every reply by telling him what to read
+## Rule 8 — How every reply ends
 
-We are running several files at once and it gets confusing. So the **last thing in every reply** is a short list:
+We are running several files at once and it gets confusing. **Every reply ends with the same three-line block, no exceptions.** Not when the reply is short, not when it is only an answer to a question, not when nothing was built. Write this block before you consider the reply finished:
 
-- What to read, in order
-- Exact file and line numbers where possible
-- **What he did not answer.** Go back through his message and check every question you asked him. If he skipped one, say so plainly. He should never discover weeks later that something was left hanging.
+1. **Read next** — what to read, one item, with exact file and line numbers where possible.
+2. **Unanswered** — go back through his message and check every question you asked him. If he skipped one, say so plainly. He should never discover weeks later that something was left hanging. Say "nothing outstanding" if there is nothing.
+3. **Settings** — which model and effort level his next message should use. How to pick is in Rule 16.
 
-Never leave him to work out where to look next.
+Never leave him to work out where to look next, and never leave the model choice to happen invisibly.
 
 ## Rule 9 — Plan each piece in `BUILD-PLAN.md` before building it
 
@@ -223,7 +223,7 @@ Rohit cannot keep up with ten things in one message, and he will forget what he 
 
 ## Rule 16 — Tell him what Claude Code setting to use for his next reply
 
-Rohit wants to control model and effort deliberately, not have it happen invisibly. So the **last thing in every reply**, alongside what to read (Rule 8), also says:
+Rohit wants to control model and effort deliberately, not have it happen invisibly. This is line 3 of the closing block in Rule 8, and it says:
 - Which model his next message should use: Sonnet, Fable, Opus, or Haiku.
 - Which effort level: low, medium, high, extra high, max, or ultracode (xhigh + workflows).
 

@@ -412,6 +412,30 @@ th.sorted { color: var(--ink-900); }
   border-left: 2px solid var(--line);
 }
 
+/* ------------------------------------------------------------------ chips -- */
+/* Quick picks for the common tenures. A chip is a small toggle, not a button
+   that does something on its own — it just fills the box above it. */
+.chips { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.15rem; }
+.chip {
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink-700);
+  border-radius: 999px; padding: 0.32rem 0.75rem;
+  font-size: 0.82rem; font-weight: 550; cursor: pointer;
+  transition: background var(--ease), border-color var(--ease), color var(--ease);
+}
+.chip:hover { background: #f8fafc; border-color: #94a3b8; }
+.chip:active { transform: translateY(1px); }
+.chip-on {
+  background: var(--ink-900); border-color: var(--ink-900); color: #fff;
+}
+
+/* The amount written out under the amount box, so a row of digits is never
+   ambiguous. Quiet enough not to look like an error message. */
+.amount-preview {
+  display: block; margin-top: 0.3rem;
+  font-size: 0.88rem; font-weight: 600; color: var(--ink-700);
+  font-variant-numeric: tabular-nums;
+}
+
 /* ------------------------------------------------------------- checklist -- */
 .checklist { list-style: none; padding: 0; margin: 0; }
 .checklist li {

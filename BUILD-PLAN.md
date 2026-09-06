@@ -669,12 +669,12 @@ Split into five pieces so each one can be read and changed before the next start
 | # | Piece | What it fixes |
 |---|---|---|
 | ~~17~~ | ~~The design system~~ | **Done 2026-09-06.** Tag `v0.1.1`. |
-| **18** | Applications list + new application form | Both look basic; filters are cramped |
+| ~~18~~ | ~~Applications list + new application form~~ | **Done 2026-09-06.** Tag `v0.1.3`. |
 | **19** | Automatic eligibility + stored summary | Eligibility is manual and minimal; nothing is recorded |
 | ~~20~~ | ~~Dashboard~~ | **Done 2026-09-06.** Tag `v0.1.2`. |
 | ~~21~~ | ~~Activity page~~ | **Done 2026-09-06.** Tag `v0.1.2`. |
 
-Pieces 20 and 21 were brought forward because Rohit hit them while using the app. Pieces 18 and 19 (the list, the form, and the stored eligibility summary) are still to do.
+Pieces 20 and 21 were brought forward because Rohit hit them while using the app. Piece 19, the stored eligibility summary, is the last one left.
 
 ---
 
@@ -735,6 +735,50 @@ The five status colours: unchanged, and used **only** inside pills and chart bar
 **The list:** filters move into a proper toolbar — a search box on the left, then filter controls, then a result count and the clear button on the right, on one line that wraps sensibly instead of the current crowd. Sort becomes explicit: click a column heading to sort by it, with an arrow showing which way. Row hover, and the whole row stays clickable.
 
 **The form:** currently one long stack of inputs. It becomes three labelled sections — *Who is applying*, *The loan*, *Why* — on a card, with the live eligibility panel beside it rather than below. Amount gets a formatted preview underneath as you type ("₹20,00,000"), tenure gets quick-pick chips for common terms, and each field shows its rule as a hint until you break it, then shows the error.
+
+### The one real decision in this piece: where sorting and searching happen
+
+They happen **on the server**, not in the browser. The list is paged at 20 rows, and there are 99 applications in the seed data. If the browser sorted, it would sort only the 20 rows it happens to be holding, so "sort by amount, highest first" would show the highest of *this page* while quietly hiding a bigger one on page 3. That is not a sort, it is a lie with an arrow next to it. Same for search: the browser can only search what it has already been given.
+
+So two small additions to the backend. Both are **purely additive** (Rule 4) — every new setting is optional, and with none of them supplied the endpoint behaves exactly as it does today, newest first.
+
+**Checked against the trainer's twenty tests before writing a line:** the only list test is `TC-01-P1-API-07`, which calls `GET /applications?status=submitted` and counts the rows that come back. It sends no search, no sort, no order, so it takes every default and the result is unchanged. Nothing else in the twenty touches the list. Safe.
+
+### The backend half
+
+**`services/application_service.list_applications`** gains three optional arguments:
+
+| Argument | Does what | Default |
+|---|---|---|
+| `search` | Partial, ignores capitals. Matches the applicant's **name**, the applicant's **email**, or — when what you typed is a number — the **application id**. So "anit", "ANITA", "anita@", and "42" all find something sensible. | none |
+| `sort_by` | `id`, `applicant_name`, `loan_type`, `amount_requested`, `tenure_months`, `status`, `submitted_at` | `submitted_at` |
+| `order` | `asc` or `desc` | `desc` |
+
+Two details worth knowing. Sorting by applicant name needs a real join rather than the `joinedload` we use now, and it has to be an **outer** join: T-03 says foreign keys are off, so an application can point at an applicant that does not exist, and an inner join would silently drop those rows from the list. And every sort gets `id` added as a tie-breaker underneath, so two applications submitted in the same second never swap places between page 1 and page 2.
+
+**`routers/applications.py`** takes the three as query parameters and checks `sort_by` and `order` against the allowed lists, answering **400** with the allowed values if either is wrong. That matches how bad `status` and `loan_type` values are already handled (T-18), so the whole endpoint speaks with one voice.
+
+**A new test file, `tests/ours/test_list_search_sort.py`**, kept out of `tests/phase1/` so the trainer's suite stays exactly as the spec writes it. It covers: search finds a partial name ignoring capitals, search by number finds that application, sorting by amount really does put the largest first across the whole set rather than the page, a bad `sort_by` is a 400, and — the one that matters most — **calling the list with no settings at all returns exactly what it returned before.**
+
+### The front-end half
+
+**`pages/ApplicationList.jsx`**, rebuilt around the toolbar Piece 17 already provides:
+
+- Search box on the left with the magnifier icon, **waiting 350ms after you stop typing** before asking the server, so a nine-letter name is one request instead of nine.
+- Status and loan type stay as dropdowns — the trainer's US-09 names them specifically, so they keep their shape.
+- Dates move behind "More filters", the same pattern as the activity page, so the default row is calm.
+- On the right: how many matched, and a Clear button that says how many filters are on.
+- Column headings become clickable, with `sortAsc`/`sortDesc` arrows that are already drawn in `Icon.jsx`. First click sorts, clicking the same one again flips the direction.
+- The empty state becomes the proper `EmptyState` component instead of a grey sentence in a table cell.
+
+**`pages/NewApplication.jsx`**, same fields and same behaviour, better shape:
+
+- Three sections using the `.form-section` styles Piece 17 already defines: *Who is applying*, *The loan*, *Why you need it*.
+- Under the amount box, the number written out as you type — "₹20,00,000" — because a row of digits is genuinely hard to read and this is the field people get wrong.
+- Tenure gets quick-pick chips for the common terms of the chosen loan type, and the chips change when the loan type does.
+- Every field shows its rule as a quiet hint, and swaps to a red message only once it is actually broken.
+
+**Not in this piece:** the automatic eligibility check, the pass/fail assessment card and the "submit anyway" modal are all Piece 19. The existing Check-eligibility button and panel carry on working exactly as they do now.
 
 ---
 
@@ -836,4 +880,5 @@ Shown on the application detail page in its own panel, and it means every applic
 | 13 | The trainer's 20 tests | 2026-09-06 | `pytest.ini`, `tests/conftest.py`, `tests/phase1/test_unit.py`, `test_api.py`, `test_db.py`. **All 20 pass** (27 runs with parametrised cases). One documented adaptation, T-36. Tag `v0.0.13`. |
 | 14 | React front-end | 2026-09-06 | `frontend/` on Vite with React 18, Axios and React Router. Nine pages, six components, the API client with token and 401 handling, client-side checks mirroring the server. Builds clean. Added `GET /applicants/me` to the backend so an applicant can load their own profile. Tag `v0.0.14`. |
 | 15 | Streamlit front-end | 2026-09-06 | `frontend-streamlit/app.py`. Sidebar login with the token in `st.session_state`; tabs for the list (filters, status colours, detail with history and documents, status update for staff), the form with the eligibility check, and the dashboard. Serves on 8501. Tag `v0.0.15`. |
+| 18 | Applications list and the form | 2026-09-06 | Server-side `search`, `sort_by` and `order` on the list endpoint, all optional so the plain call is unchanged; `tests/ours/test_list_search_sort.py` (7 pass) guards that. Front-end: search box with a 350ms wait, sortable column headings, dates behind a toggle, proper empty state; the form split into three sections with an amount preview and tenure chips. Trainer's 20 still pass. Tag `v0.1.3`. |
 | 16 | Seed data, report, submission files | 2026-09-06 | `backend/seed.py` (2 staff, 6 customers, 8 applications, 58 activity rows), `README.md`, `MY_SCORES.md`, `results/phase1-results.xml` (27 runs, 0 failures). Tags `v0.0.16` and **`v0.1.0`**. |

@@ -70,3 +70,6 @@ The user manual is written for Phase 2. It describes some things the trainer's P
 | Automated tests for the React app | Came up while finishing Phase 1; the program grades only backend tests | Vitest plus React Testing Library for the form validation and the status badge colours | Small |
 | A `python -m app` entry so `uvicorn` is not typed by hand | Convenience noticed writing the README | One file | Tiny |
 | RAGAS automated answer scoring | Scoring rubric mentions it as optional | Only useful once Phase 2 answers exist | Small |
+| Remember each officer's last filter and sort | Noticed building Piece 18 — a manager who always looks at "under review, oldest first" retypes it every visit | Needs a per-user settings table on the server (never the browser, Rule 13). Nice, not graded. | Small |
+| Export the filtered list to a spreadsheet | Same place — the toolbar is the natural home for a download button | Belongs with the activity-log export already listed above, so build both together or neither | Small |
+| The search box should also match the purpose text | Piece 18 searches name, email and application number | Purpose is free text, so it needs a proper text index to stay fast once there are thousands of rows | Small |

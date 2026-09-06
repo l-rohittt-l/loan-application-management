@@ -39,6 +39,16 @@ Newest entries at the top. Short on purpose.
 
 ## The log
 
+## 2026-09-06 — Session 30: Piece 18, the applications list and the form
+
+**Asked for:** build Piece 18 — tidy the crowded filters on the applications list, let people sort by clicking a column, and turn the submission form from one long stack of boxes into something readable.
+**Built:** the list now has a search box that waits for you to stop typing, the two dropdowns the trainer's user story names, dates tucked behind a toggle, and column headings you click to sort with an arrow showing which way. The form is now three sections — who is applying, the loan, why you need it — with the amount written out under the box as you type and quick-pick chips for common tenures. Searching and sorting needed three new optional settings on the backend list endpoint.
+**Found:** the backend server had been running since the last session **without `--reload`**, so my changes looked like they did nothing — search came back with every row and a deliberately invalid sort column answered 200 instead of 400. Restarting it the way the README says fixed it. Written up as T-40, because the same thing will fool us again.
+**Realised:** sorting had to happen on the server, not in the browser. The page only holds 20 rows, so a browser sort would order those 20 and quietly hide a bigger amount on the next page — the seed data proves it, since sorting by amount brings Sanjay's ₹40,00,000 onto page 1 from page 2. Guarded the whole thing with a test that the plain unfiltered call still returns exactly what it did before, which is what the trainer's API-07 relies on.
+**Next:** Piece 19 — automatic eligibility in the form, and the eligibility summary stored permanently on each application.
+
+---
+
 ## 2026-09-06 — Session 29: Sticky headings, real search, and making the reference number honest
 
 **Asked for:** table headings that stay put when scrolling, an explanation of what a developer would actually do with the reference number in the activity popup, and search that works on part of a name instead of the whole email.

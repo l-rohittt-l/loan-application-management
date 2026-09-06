@@ -9,6 +9,7 @@ from datetime import date, datetime, time
 from time import perf_counter
 
 import structlog
+from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.domain import rules
@@ -135,6 +136,21 @@ def get_application(db: Session, application_id: int, *, viewer: User) -> LoanAp
 # List with filters
 # ---------------------------------------------------------------------------
 
+# The columns the list may be sorted by, and how each one is reached. Anything
+# not in here is refused by the router, so a caller cannot ask us to sort by an
+# arbitrary column name.
+SORT_COLUMNS = {
+    "id": LoanApplication.id,
+    "applicant_name": Applicant.name,
+    "loan_type": LoanApplication.loan_type,
+    "amount_requested": LoanApplication.amount_requested,
+    "tenure_months": LoanApplication.tenure_months,
+    "status": LoanApplication.status,
+    "submitted_at": LoanApplication.submitted_at,
+}
+SORT_ORDERS = ("asc", "desc")
+
+
 def list_applications(
     db: Session,
     *,
@@ -143,18 +159,35 @@ def list_applications(
     loan_type: str | None = None,
     from_date: date | None = None,
     to_date: date | None = None,
+    search: str | None = None,
+    sort_by: str = "submitted_at",
+    order: str = "desc",
     page: int = 1,
     limit: int = 20,
 ) -> tuple[list[LoanApplication], int]:
     """
     A page of applications plus the total count. Filters combine with AND.
-    Newest first. Applicants see only their own. The applicant is joined in
-    the same query so the list screen can show a name without extra queries.
+    Newest first unless asked otherwise. Applicants see only their own. The
+    applicant is joined in the same query so the list screen can show a name
+    without a second trip to the database for every row.
+
+    Searching and sorting are done here rather than in the browser on purpose.
+    The list is paged, so the browser only ever holds 20 rows; sorting those
+    would show the largest amount on *this page* while hiding a bigger one on
+    the next. The database sorts the whole set, then we take a page of it.
     """
     query = db.query(LoanApplication).options(joinedload(LoanApplication.applicant))
 
+    # Searching and sorting by the applicant's name both need the applicants
+    # table in the query. It has to be an OUTER join: foreign keys are off
+    # (T-03), so an application can point at an applicant that no longer
+    # exists, and an inner join would quietly drop those rows from the list.
+    needs_applicant = bool(search) or sort_by == "applicant_name"
+
     if viewer.role == UserRole.applicant:
         query = query.join(Applicant).filter(Applicant.user_id == viewer.id)
+    elif needs_applicant:
+        query = query.outerjoin(Applicant, LoanApplication.applicant_id == Applicant.id)
 
     if status:
         query = query.filter(LoanApplication.status == ApplicationStatus(status))
@@ -165,9 +198,28 @@ def list_applications(
     if to_date:
         query = query.filter(LoanApplication.submitted_at <= datetime.combine(to_date, time.max))
 
+    if search:
+        term = search.strip()
+        if term:
+            # Partial and case-insensitive, matching the applicant's name or
+            # email. If what was typed is a number, it also matches the
+            # application's own id, so "42" finds application 42.
+            pattern = f"%{term}%"
+            matches = [Applicant.name.ilike(pattern), Applicant.email.ilike(pattern)]
+            if term.isdigit():
+                matches.append(LoanApplication.id == int(term))
+            query = query.filter(or_(*matches))
+
+    column = SORT_COLUMNS.get(sort_by, LoanApplication.submitted_at)
+    direction = column.asc() if order == "asc" else column.desc()
+    # The id underneath every sort is a tie-breaker. Without it, two rows with
+    # the same value sit in whatever order the database feels like, which can
+    # differ between page 1 and page 2 and make a row appear twice or not at all.
+    tie_break = LoanApplication.id.asc() if order == "asc" else LoanApplication.id.desc()
+
     total = query.count()
     items = (
-        query.order_by(LoanApplication.submitted_at.desc(), LoanApplication.id.desc())
+        query.order_by(direction, tie_break)
         .offset((page - 1) * limit)
         .limit(limit)
         .all()

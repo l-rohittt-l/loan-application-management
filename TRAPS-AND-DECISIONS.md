@@ -92,6 +92,18 @@ Fix: a shared `UtcDateTime` type in `schemas/common.py` that stamps naive databa
 
 **Watch for this again in Phase 2 onwards:** any new response field holding a time must use `UtcDateTime`, not `datetime`.
 
+### From building the list (2026-09-06)
+
+**T-40 · A backend running without `--reload` makes new code look broken.** Found while testing Piece 18. The server had been left running from an earlier session as `python -m uvicorn app.main:app --host 127.0.0.1 --port 8000` — no `--reload`, and using the machine's Python rather than the project's virtual environment. So every new query parameter was silently ignored: a search returned every row, and a deliberately invalid sort column answered 200 instead of the 400 the new code raises. Nothing was wrong with the code at all.
+
+The quick way to tell, before doubting the code: open `http://localhost:8000/openapi.json` and look at whether the parameters you just added are listed. If they are not, the running server is old. Start it the way the README says, from `backend/`:
+
+```powershell
+.\venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000
+```
+
+**T-41 · Sorting a paged list in the browser is wrong, not just slower.** The list hands back 20 rows at a time. Sorting those in the browser orders the page, not the data, so "largest amount first" shows the largest of *this page* while a bigger one sits on page 3 — with an arrow next to the column implying otherwise. Sorting and searching both belong on the server for any list that is paged. Proved on the seed data: sorting by amount brings a ₹40,00,000 application onto page 1 from page 2.
+
 ### From the mentor chats
 
 **T-09 · Streamlit was overruled, but not replaced.** The Phase 2–4 tests check Streamlit; the demo runs React. Build both. Chat logic lives in the backend, both front-ends are thin screens.
