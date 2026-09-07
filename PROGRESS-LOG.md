@@ -39,6 +39,16 @@ Newest entries at the top. Short on purpose.
 
 ## The log
 
+## 2026-09-07 — Session 35: Phase 4 built — the MCP server and the staff chat, 25 of 25 pass
+
+**Asked for:** the unattended run continues to Phase 4 — the MCP server (six tools exposing the loan system over the Model Context Protocol) and the Streamlit chat interface staff use to manage applications by typing sentences.
+**Built:** `mcp_server/mcp_app.py`, six `@mcp.tool()` functions built on the same shared API client Phase 3 uses (a fresh token every call, never a stale one from `.env`; a plain dict back on every failure, never a stack trace — the same two fixes as `AI-BUILD-LOG.md`'s Phase 4 bugs). `mcp_server/chat_interface.py`, a second ReAct agent wrapping those six tools for a LangChain agent to reason over, plus the actual Streamlit chat screen — session id, quick-action buttons, chat history, and an expandable "tools used" panel per reply. All 25 of the trainer's tests, `tests/phase4/`, **pass on the first full run after one fix**: a single-argument tool (`get_application_details`) hit the same LangChain ReAct quirk Phase 3 had already worked around, fixed the same way — take the id as a string, convert inside the tool.
+**Found:** two things that would have embarrassed us in a demo, both invisible to the test suite. First — installing `fastmcp` at all, with no version pin, silently upgrades `starlette` to a version that breaks FastAPI outright; chasing that broke the app twice before landing on pinning `starlette` back down (T-63, in full in the traps file). Second — actually opening the chat screen with Streamlit's own `AppTest` (real browser tooling wasn't available this session) showed that clicking a sidebar "quick action" button added a user message and then **nothing answered it** — the button only appended to history and reran the page; it never called `process_message`. Fixed by giving both the chat box and the quick-action buttons one shared path. Also found, while fixing the first issue, that `requirements.txt` had quietly been Phase 1 only since Phase 2 started — a clean checkout would never have reproduced this environment. Rewrote it from the real working venv and proved it in a brand new one.
+**Realised:** a passing test suite proves the logic works; it does not prove a button does anything. `AppTest` actually executes the Streamlit script the way a browser would, and that is what caught the dead button — reading the code again would not have.
+**Next:** Phase 5 — the four-agent underwriting review, 25 tests, not started.
+
+---
+
 ## 2026-09-06 — Session 34: Phase 3's tests, run for the first time — 23 of 23 pass
 
 **Asked for:** the unattended run continues. `agent/` and `tests/phase3/` both existed from an earlier session but nobody had ever run `pytest tests/phase3`, so nobody knew whether Phase 3 actually worked.

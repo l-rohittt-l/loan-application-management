@@ -38,6 +38,7 @@ backend/results/
 logs/
 backend/logs/
 backend/uvicorn.log
+backend/streamlit_mcp.log
 
 # ---- Node / React -------------------------------------------------------
 node_modules/

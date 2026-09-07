@@ -934,6 +934,18 @@ This run's job was to actually run `tests/phase3/` for the first time and inspec
 
 ---
 
+# PHASE 4 — the MCP server and the staff chat
+
+**25% of the marks · 25 tests · 18 to pass.** The heaviest phase.
+
+**`mcp_server/mcp_app.py`** — six `@mcp.tool()` functions (`submit_loan_application`, `get_application_details`, `update_application_status`, `list_applications_by_filter`, `get_dashboard_summary`, `upload_document_metadata`), each calling the Phase 1 API through the shared `app.services.loan_api_client` Phase 3 already uses, and each returning a plain dict — real data on success, `{"error": ..., "detail": ...}` on any failure, never an exception. `mcp.tool_invoke` OTel span and a structured log line on every call, per the trainer's own observability table.
+
+**`mcp_server/chat_interface.py`** — the same six operations wrapped again as LangChain tools (`MCP_TOOLS`), feeding a second ReAct agent built the same way Phase 3's is, at temperature 0. `build_executor()` and `process_message()` carry no Streamlit code, so importing this module for a test never touches the UI; the actual chat screen lives in `main()`, called only under `streamlit run`. Session id in the sidebar, four quick-action buttons, full chat history, and an expandable "tools used" panel under every reply that called one.
+
+**What this run did, not what it built from scratch:** the trainer's spec, the fastmcp version fight, and everything found along the way are in `PROGRESS-LOG.md` Session 35 and `TRAPS-AND-DECISIONS.md` T-63. Two real bugs came out of actually running and driving the thing rather than trusting the test suite: a LangChain ReAct quirk on the one single-argument tool (fixed the same way Phase 3 fixed it — take the id as a string), and a dead "quick action" button in the Streamlit screen that added a message but never asked the agent anything, found with Streamlit's own `AppTest` since real browser tooling was not available this session. **All 25 tests pass, none skipped.** Tag `v0.4.0`.
+
+---
+
 ## Done
 
 | # | Piece | Finished | Commit |
