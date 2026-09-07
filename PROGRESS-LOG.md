@@ -39,6 +39,16 @@ Newest entries at the top. Short on purpose.
 
 ## The log
 
+## 2026-09-07 — Session 37: The Manager's Morning Briefing — the headline feature
+
+**Asked for:** the last thing on the run's list before the report — the showcase feature settled as D-13 back on 2026-09-05. Not a trainer requirement; the thing that makes the demo memorable rather than merely complete.
+**Built:** the manager opens the app and the AI has already read the whole pipeline — what is stuck and for how long, what is held up by missing documents, what was flagged by the bank's own eligibility check at submission and is somehow still open, and what is approved but not yet paid out. `briefing_service.py`, a manager-only `GET /api/v1/briefing`, a card at the top of the manager's dashboard with a "how this was worked out" panel that opens the actual numbers behind every sentence, and 7 tests of our own. Same discipline as Phase 5: every number is counted from the database first, and the AI only writes the prose.
+**Found:** three things, and two of them matter more than the feature itself. First — **the test suites had been writing into the real demo database all along.** Phases 3, 4 and 5 talk to the Phase 1 API over HTTP, and that fixture reuses whatever server is already running, which is the real one. One full test run had left **60 applications** called things like "Phase 5 underwriting fixture" sitting in the manager's pipeline — 68 open applications, nearly all junk, which is exactly what an Account Delivery Head would have seen first. Cleaned up, and there is now a `clean_test_data.py` to run before any demo (T-65). Second — **the Gemini free tier is 500 requests a day**, not just 5 a minute, and this run used them up. The briefing degraded to its plain-figures fallback exactly as designed and said so on screen, but it means the AI narrative could not be shown live today (T-66). Third, smaller: the seed data was all created on the same day, so nothing was ever overdue and the briefing had nothing to report. The seed script now spreads applications across three weeks, with a couple genuinely overdue, which is what a real branch looks like.
+**Realised:** the briefing is the feature that pulls the whole project together in one screen — Phase 1's data, Piece 19's stored eligibility, Phase 5's view of risk, and the same observability as everything else. It also answers the question an ADH actually asks, which is not "does it have a chatbot" but "what does this change on Monday morning".
+**Next:** the final report, `RUN-REPORT.md`.
+
+---
+
 ## 2026-09-07 — Session 36: Phase 5 built — the four-agent underwriting review, 25 of 25 pass
 
 **Asked for:** the last phase of the unattended run — the LangGraph multi-agent system that reviews a loan application the way an underwriting desk would: one agent collects the data, one scores the risk, one checks compliance, one makes the call.

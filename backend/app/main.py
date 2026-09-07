@@ -24,7 +24,8 @@ from app.config import settings                              # noqa: E402
 from app.database import engine, init_db                     # noqa: E402
 from app.middleware.logging_middleware import logging_middleware  # noqa: E402
 from app.routers import (                                     # noqa: E402
-    activity, applicants, applications, auth, chat, dashboard, documents, eligibility,
+    activity, applicants, applications, auth, briefing, chat, dashboard, documents,
+    eligibility,
 )
 from app.utils.logging_config import configure_logging       # noqa: E402
 from app.utils.otel_config import instrument_sqlalchemy, setup_telemetry  # noqa: E402
@@ -79,6 +80,8 @@ app.include_router(applications.router, prefix="/api/v1/applications", tags=["ap
 app.include_router(documents.router, prefix="/api/v1/applications", tags=["documents"])
 app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["dashboard"])
 app.include_router(activity.router, prefix="/api/v1/activity", tags=["activity"])
+# The headline feature (D-13): the manager's morning briefing.
+app.include_router(briefing.router, prefix="/api/v1/briefing", tags=["briefing"])
 # The one chat door. What sits behind it grows with each phase; the address does not.
 app.include_router(chat.router, prefix="/api/v1/chat", tags=["chat"])
 

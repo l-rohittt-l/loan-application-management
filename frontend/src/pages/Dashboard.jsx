@@ -15,7 +15,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api, errorMessage } from "../api/client";
+import { useAuth } from "../auth/AuthContext";
 import ErrorBanner from "../components/ErrorBanner";
+import MorningBriefing from "../components/MorningBriefing";
 import Spinner from "../components/Spinner";
 import Button from "../components/ui/Button";
 import EmptyState from "../components/ui/EmptyState";
@@ -50,6 +52,7 @@ function BarRow({ name, count, total, colour }) {
 }
 
 export default function Dashboard() {
+  const { isManager } = useAuth();
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [refreshing, setRefreshing] = useState(false);
@@ -98,6 +101,10 @@ export default function Dashboard() {
       </div>
 
       <ErrorBanner message={error} onClose={() => setError("")} />
+
+      {/* The headline feature (D-13). Manager-only: it reads across every
+          customer's file at once, which is a branch-level view. */}
+      {isManager && <MorningBriefing />}
 
       {data && (
         <>

@@ -15,7 +15,7 @@ Logins it creates (all passwords are printed at the end):
 """
 
 import os
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 
 os.environ.setdefault("OTEL_EXPORTER", "none")
 
@@ -41,24 +41,31 @@ CUSTOMERS = [
     ("Sanjay Kulkarni",  "sanjay@example.com", "9456789012", 900_000,  "salaried",      740,  date(1971, 6, 10), 12.0, 15_000),
 ]
 
-# applicant email, loan type, amount, tenure, purpose, final status, documents (type, verified)
+# applicant email, loan type, amount, tenure, purpose, final status, documents (type, verified),
+# days ago it was submitted
+#
+# The "days ago" column exists because a demo database where every file
+# arrived this morning is not what a branch looks like. A real pipeline
+# always has something that has been sitting too long, and the manager's
+# morning briefing (D-13) has nothing to say without it. These ages are
+# spread deliberately: two files well overdue, one borderline, the rest fresh.
 APPLICATIONS = [
     ("priya@example.com",  "home",     2_000_000, 120, "Buying a 2BHK flat in Pune",           "under_review",
-     [("id_proof", True), ("income_proof", True), ("bank_statement", False), ("property_docs", False)]),
+     [("id_proof", True), ("income_proof", True), ("bank_statement", False), ("property_docs", False)], 11),
     ("priya@example.com",  "personal", 200_000,   24,  "Home renovation",                      "submitted",
-     [("id_proof", False)]),
+     [("id_proof", False)], 6),
     ("rahul@example.com",  "personal", 300_000,   36,  "Working capital for my shop",          "approved",
-     [("id_proof", True), ("income_proof", True), ("bank_statement", True)]),
+     [("id_proof", True), ("income_proof", True), ("bank_statement", True)], 8),
     ("meera@example.com",  "auto",     600_000,   60,  "New car",                              "disbursed",
-     [("id_proof", True), ("income_proof", True), ("bank_statement", True), ("vehicle_quotation", True)]),
+     [("id_proof", True), ("income_proof", True), ("bank_statement", True), ("vehicle_quotation", True)], 20),
     ("arjun@example.com",  "personal", 150_000,   24,  "Laptop and course fees",               "rejected",
-     [("id_proof", True), ("income_proof", False)]),
+     [("id_proof", True), ("income_proof", False)], 14),
     ("kavya@example.com",  "auto",     400_000,   48,  "First car",                            "submitted",
-     [("id_proof", False), ("bank_statement", False)]),
+     [("id_proof", False), ("bank_statement", False)], 3),
     ("sanjay@example.com", "home",     4_000_000, 180, "Retirement home in Nashik",            "under_review",
-     [("id_proof", True), ("income_proof", True), ("bank_statement", True), ("property_docs", True), ("employment_letter", False)]),
+     [("id_proof", True), ("income_proof", True), ("bank_statement", True), ("property_docs", True), ("employment_letter", False)], 1),
     ("meera@example.com",  "personal", 500_000,   48,  "Daughter's college fees",              "submitted",
-     []),
+     [], 0),
 ]
 
 # The path each final status takes, so the history looks real.
@@ -111,7 +118,7 @@ def main() -> None:
         print(f"customer: {name} <{email}>")
 
     # ---- Applications, submitted by the customer, moved along by staff. ----
-    for email, loan_type, amount, tenure, purpose, final, docs in APPLICATIONS:
+    for email, loan_type, amount, tenure, purpose, final, docs, days_ago in APPLICATIONS:
         customer = users_by_email[email]
         applicant = applicant_by_email[email]
         application = application_service.create_application(
@@ -131,7 +138,23 @@ def main() -> None:
             actor = manager if step == "disbursed" else officer
             application_service.update_status(db, application.id, ApplicationStatus(step),
                                               REMARKS[step], user=actor)
-        print(f"application #{application.id}: {applicant.name}, {loan_type} {amount:,} / {tenure} mo -> {final}")
+
+        if days_ago:
+            # Backdate it so the pipeline has a realistic spread of ages, with
+            # a couple of files genuinely overdue. Done last, because every
+            # status change above refreshes updated_at (the column has
+            # onupdate=func.now()), and the morning briefing measures an
+            # approved application's staleness from updated_at.
+            #
+            # SQLite stores naive datetimes that are really UTC (T-39), so
+            # this writes naive UTC to match what the database itself does.
+            backdated = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days_ago)
+            application.submitted_at = backdated
+            application.updated_at = backdated
+            db.commit()
+
+        aged = f", submitted {days_ago}d ago" if days_ago else ""
+        print(f"application #{application.id}: {applicant.name}, {loan_type} {amount:,} / {tenure} mo -> {final}{aged}")
 
     activity_rows = db.query(ActivityLog).count()
     print(f"\nDone. {activity_rows} activity rows recorded along the way.")

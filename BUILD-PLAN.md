@@ -967,6 +967,25 @@ This run's job was to actually run `tests/phase3/` for the first time and inspec
 
 ---
 
+# THE HEADLINE FEATURE — the Manager's Morning Briefing
+
+Settled as D-13 on 2026-09-05, built after Phase 5 cleared. Not a trainer requirement — this is the thing that makes the demo memorable rather than merely complete. Everything else in this project answers a question the manager asked; this is the one screen that tells them what to ask about.
+
+**What it is.** The manager opens the app in the morning and the AI has already read the whole pipeline: what is stuck and for how long, what is risky and why, what needs a decision today, and what is quietly fine. One short briefing, in plain English, written the way a good deputy would summarise the desk before a morning meeting.
+
+**Where the numbers come from.** Every figure is computed in Python first, from the database, before any LLM sees anything — the same discipline as Phase 5 (D-19): applications sitting in one status longer than expected, the value at risk in each bucket, applications that failed their own eligibility check at submission (Piece 19's stored summary earns its keep here), documents still missing on applications waiting for review, and anything approved but not yet disbursed. The LLM turns that already-correct picture into a few readable paragraphs. If the LLM is unavailable the briefing still renders — as the numbers, without the prose.
+
+**Why it demos well.** It uses every phase at once: Phase 1's data, Phase 5's underwriting view of risk, Phase 2's manual for policy phrasing, and the same observability everything else has. And it answers the question an Account Delivery Head actually asks, which is not "does it have a chatbot" but "what does this change on Monday morning".
+
+**Shape:**
+
+- `app/services/briefing_service.py` — gathers the facts (one grouped set of queries, no N+1), then asks the LLM for the narrative, with a deterministic fallback.
+- `GET /api/v1/briefing` — manager-only, same role gate as the activity log.
+- A card at the top of the manager's dashboard in React, with a refresh and a "how this was worked out" panel showing the underlying numbers, so nothing is a black box.
+- Tests in `tests/ours/`, because this is ours, not the trainer's.
+
+---
+
 ## Done
 
 | # | Piece | Finished | Commit |

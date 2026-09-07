@@ -257,6 +257,26 @@ A suffixed name fails both instantly. **Fix: Gemini, the default, uses the bare 
 
 # Settled
 
+### 2026-09-07 · T-66 — The Gemini free tier is 500 requests a **day**, and one full test run gets close
+
+**What happened:** near the end of this run the AI stopped answering entirely — `RESOURCE_EXHAUSTED`, but this time naming `GenerateRequestsPerDayPerProjectPerModel-FreeTier`, `limit: 500`. T-55 documented the *per-minute* cap (5/min) and how the SDK's own backoff rides over it. This is a different, harder wall: once the day's 500 are gone, no amount of waiting inside a run helps. It resets on Google's clock, not ours.
+
+**Why it matters more than it sounds:** Phases 2 through 5 together make well over a hundred LLM calls per full test run — Phase 3's agent alone spends several per test, and Phase 4 and 5 do the same. **Two or three full `pytest tests/` runs in one day can exhaust the daily quota**, and the next thing that asks for an LLM gets nothing. In this run that "next thing" happened to be the Manager's Morning Briefing, which degraded to its plain fallback exactly as designed — nothing broke, but the AI narrative could not be shown.
+
+**What this means before a demo, in order of preference:**
+
+1. **Do not run the full test suite on demo day.** Run it the day before. The demo itself costs only a handful of calls.
+2. **Get a paid Gemini key** if the demo matters — this is the real fix, and it is inexpensive.
+3. **Install Ollama** as the local fallback the project already supports (`LLM_PROVIDER=ollama` in `.env`, T-51/T-46). It was checked during this run and is **not installed on this laptop**, so that fallback is currently theoretical rather than available. Worth setting up before relying on it.
+
+**What protects us either way:** every AI feature in this project degrades rather than fails — Phase 5's agents fall back to deterministic summaries, and the briefing falls back to the plain figures and says `written_by_ai: false` on the screen. The numbers are never at risk, because no number anywhere is computed by an LLM (D-19).
+
+### 2026-09-07 · T-65 — The Phase 3/4/5 tests write into the real demo database
+
+**What's wrong:** those phases' `running_api` fixture reuses an already-running Phase 1 server if it finds one — and that server is the real one, on the real `loan_app.db`. So every test that submits an application (Phase 4's MCP tests, Phase 5's fixtures) leaves a real row behind. One full run of this project's test suite left **60 applications** named things like "Phase 5 underwriting fixture" and "MCP test application" sitting in the manager's pipeline. The dashboard showed 68 open applications, nearly all of them junk — and that would have been the first screen an Account Delivery Head saw.
+
+**Chosen:** `backend/clean_test_data.py`, which deletes only applications whose purpose matches one of the known test-fixture strings and leaves everything a person typed alone. **Run it before any demo.** The deeper fix — pointing those phases at their own database — was deliberately not attempted this late in the run, because the fixture reuses whatever server is already up, so it would only help someone who remembers to stop their server first. Recorded as the honest recommendation instead: see `RUN-REPORT.md`.
+
 ### 2026-09-07 · T-64 — Gemini's `response.content` is sometimes a list, not a string
 
 **What's wrong:** `ChatGoogleGenerativeAI(...).invoke(prompt).content` does not always return a string. On `gemini-3.5-flash-lite` through `langchain-google-genai 4.4.0` it often returns a **list of content blocks** — `[{'type': 'text', 'text': 'OK', 'extras': {...}}]` — so the obvious `response.content.strip()` raises `'list' object has no attribute 'strip'`.
