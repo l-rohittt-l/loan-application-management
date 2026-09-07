@@ -28,6 +28,18 @@ each with an ID, so he can review and overturn any of them afterwards.
 
 ---
 
+### D-19 · Phase 5: the LLM writes the prose, plain Python computes the numbers
+
+**What's wrong:** the trainer's Phase 5 reference asks the LLM to compute the debt-to-income ratio, the EMI, the credit and employment risk tiers and the overall risk score itself, and return them as JSON to be parsed with a regex. Their own "common mistakes" table then admits the consequence: *"JSON parsing fails in Risk Assessor — use regex to extract JSON, have fallback values."* For numbers a lending decision hangs on, an occasional silent fallback to made-up defaults is not an acceptable failure mode.
+
+**Chosen:** every number in Phase 5 — EMI, DTI, affordability, credit risk tier, employment risk tier, overall score, and the final decision itself — is computed in plain Python from the same `app/domain/rules.py` thresholds Phase 1's eligibility check already uses (the ones settled in D-10, T-13 and T-14 before Phase 5 was ever built). The LLM's job is narrower and better suited to it: writing the `risk_summary` and the decision `reasoning` a human underwriter actually reads, from figures already known to be correct. If the LLM call fails, times out, or is rate-limited, a short deterministic sentence takes its place and **the decision does not change**.
+
+**Why:** three reasons worth saying out loud in a walkthrough. The decisions are repeatable — the same application always gets the same answer, which is what an auditor and a regulator both want. They are explainable line by line, which the program's own integrity rules require. And a bad JSON day or an exhausted free-tier quota can never alter a lending decision. This still genuinely puts an LLM in the pipeline, traced per-agent in LangSmith, doing the part it is actually good at.
+
+**Your answer:**
+
+---
+
 ### D-09 · Angular as a third front-end later?
 
 **My recommendation:** revisit once Phase 5 is demo-ready. Listed in `FUTURE-UPGRADES.md`.
@@ -244,6 +256,16 @@ A suffixed name fails both instantly. **Fix: Gemini, the default, uses the bare 
 ---
 
 # Settled
+
+### 2026-09-07 · T-64 — Gemini's `response.content` is sometimes a list, not a string
+
+**What's wrong:** `ChatGoogleGenerativeAI(...).invoke(prompt).content` does not always return a string. On `gemini-3.5-flash-lite` through `langchain-google-genai 4.4.0` it often returns a **list of content blocks** — `[{'type': 'text', 'text': 'OK', 'extras': {...}}]` — so the obvious `response.content.strip()` raises `'list' object has no attribute 'strip'`.
+
+**How it hid:** both Phase 5 agents that call an LLM wrap the call in a try/except with a deterministic fallback, so nothing crashed and every test passed. The pipeline just quietly used the plain fallback sentence every single time instead of the LLM's writing — working, but not doing what it looked like it was doing. Only reading the warning lines in the log (`risk_summary_llm_failed`) showed it.
+
+**Fix:** one shared `multi_agent/llm_text.py` with `text_of(content)`, handling both a plain string and a list of blocks. **Worth checking anywhere else this project reads `.content` from a Gemini response** — Phase 2's chain ends in `StrOutputParser()` so it is unaffected, and Phases 3 and 4 read agent output through LangChain's own agent machinery rather than touching `.content` directly.
+
+**Also worth knowing:** a defensive fallback that swallows an exception silently will hide a bug like this indefinitely. The log line is what made it findable — which is the argument for logging the reason on every fallback path, not just returning the safe value.
 
 ### 2026-09-06 · T-63 — `requirements.txt` had been Phase 1 only since Phase 2 started, and installing `fastmcp` unpinned breaks FastAPI
 

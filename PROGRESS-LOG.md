@@ -39,6 +39,16 @@ Newest entries at the top. Short on purpose.
 
 ## The log
 
+## 2026-09-07 — Session 36: Phase 5 built — the four-agent underwriting review, 25 of 25 pass
+
+**Asked for:** the last phase of the unattended run — the LangGraph multi-agent system that reviews a loan application the way an underwriting desk would: one agent collects the data, one scores the risk, one checks compliance, one makes the call.
+**Built:** `multi_agent/` — the shared state, the four agents, the graph, and a command-line entry point. The graph is linear with one branch: if the application cannot be fetched, it stops there rather than asking three more agents to reason about data that does not exist. **All 25 tests pass, none skipped.**
+**Found:** two things worth knowing. The Gemini model returns `response.content` as a *list of content blocks*, not a string, so `.strip()` on it raised every single time — my own defensive fallback caught it silently, which meant the pipeline kept working but every LLM-written summary was quietly replaced by the plain deterministic one. Nothing failed; it just wasn't doing what it looked like it was doing. Fixed with one shared helper that handles both shapes. The other was the same LangSmith cold-start problem Phase 3 hit (T-62), just slower: a brand-new project took longer than 24 seconds to become queryable the first time anything was ever written to it.
+**Realised:** the important design call here was **not** letting the LLM compute the numbers. The trainer's own reference asks the model to calculate the debt-to-income ratio, the EMI, and the risk score itself and return JSON — and their own tips list admits what that costs ("JSON parsing fails in Risk Assessor... have fallback values"). For numbers a lending decision hangs on, that is the wrong trade. Every number in this phase is computed in plain Python from the same `domain/rules.py` thresholds the rest of the project already uses, and the LLM writes only the prose a human reads. That makes the decisions repeatable, auditable, and explainable in a code walkthrough — and it means a rate limit or a bad JSON day can never change a lending decision.
+**Next:** the Manager's Morning Briefing (the headline showcase feature, D-13), then the final report.
+
+---
+
 ## 2026-09-07 — Session 35: Phase 4 built — the MCP server and the staff chat, 25 of 25 pass
 
 **Asked for:** the unattended run continues to Phase 4 — the MCP server (six tools exposing the loan system over the Model Context Protocol) and the Streamlit chat interface staff use to manage applications by typing sentences.

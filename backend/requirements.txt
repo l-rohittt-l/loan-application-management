@@ -85,3 +85,8 @@ langsmith==0.12.2               # tracing, Phase 2 OBS-01/04 onwards
 mcp==1.6.0
 fastmcp==0.4.1
 starlette==0.37.2               # keep pinned here too: nothing above may raise this
+
+# ---------------------------------------------------------------------------
+# Phase 5 — the four-agent underwriting review
+# ---------------------------------------------------------------------------
+langgraph==1.2.11

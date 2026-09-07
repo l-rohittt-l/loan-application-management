@@ -946,6 +946,27 @@ This run's job was to actually run `tests/phase3/` for the first time and inspec
 
 ---
 
+# PHASE 5 — the four-agent underwriting review
+
+**20% of the marks · 25 tests · 18 to pass.**
+
+**`multi_agent/state.py`** — the `LoanProcessingState` TypedDict every agent reads and writes, plus an `initial_state()` helper so every field starts with a sensible empty default and no agent ever meets a missing key.
+
+**The four agents**, each in its own file under `multi_agent/agents/`:
+
+- **Data collector** fetches the application, its applicant and its documents through the same shared API client Phases 3 and 4 use. The application response already embeds the applicant, so this is one HTTP call, not two.
+- **Risk assessor** computes the EMI, the debt-to-income ratio, affordability, the credit and employment risk tiers and the overall 0-100 score — all in plain Python from `domain/rules.py`. The LLM writes only the two-sentence summary a human reads (D-19).
+- **Compliance checker** verifies documents, KYC, the amount limit and — unlike the trainer's own reference, which contains `age_eligible = ... or True` and never checks an age at all — a real age check against `AGE_LIMITS`, including the rule that a home loan must be repaid before 70 (`AI-BUILD-LOG.md`, D-05).
+- **Decision maker** applies the bands settled in D-10: approve above 70, reject below 40, everything else asks for more information — with a missing document treated as fixable and an over-limit amount or ineligible age treated as not. The LLM writes the reasoning paragraph explaining a decision that has already been made.
+
+**`multi_agent/graph.py`** — the LangGraph `StateGraph` wiring those four in order, with one conditional edge: if data collection failed, end there. `graph.execute` and `agent.{name}.activate` OTel spans, `supervisor_routing` log lines, and per-agent traces in the `AI-Readiness-POC-01-P5` LangSmith project.
+
+**`multi_agent/main.py`** — the command-line entry point from the trainer's Step 7.7, printing each agent's message and the final decision.
+
+**All 25 tests pass, none skipped.** Two bugs found by running it rather than reading it: Gemini returning `.content` as a list of blocks rather than a string (T-64), which silently replaced every LLM summary with the fallback, and the same LangSmith cold-start wait Phase 3 hit (T-62). Tag `v0.5.0`.
+
+---
+
 ## Done
 
 | # | Piece | Finished | Commit |
