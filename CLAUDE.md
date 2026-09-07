@@ -229,6 +229,25 @@ Rohit wants to control model and effort deliberately, not have it happen invisib
 
 Pick the smallest model and lowest effort that comfortably does the next piece. Planning and simple decisions: Sonnet, low or medium. A meaty piece of code, several files, or something that needs careful reasoning: Fable or Opus, high. Reserve max/ultracode for something genuinely large or high-stakes — not a default.
 
+## Rule 17 — Hand work off to a fresh session when it does not need this one's memory
+
+A long session fills up with everything it has read. That memory is expensive and it is finite, and once it is full the session gets worse at the thing it was actually hired to do. So: **work that does not need what this session already knows should be done in a new session, not this one.**
+
+At the end of every reply, ask yourself one question: *did I just tell Rohit to do something that a fresh chat could handle just as well?* If yes, say so, and give him a prompt to paste into a new one.
+
+**Hand off when the task is self-contained and mostly mechanical.** Checking what is installed on a machine. Running a test suite and reading the output. Setting up a laptop. Installing something. Walking through a demo. Debugging one error message. Confirming a fix works. None of these need to remember why Piece 19 was built the way it was.
+
+**Keep it here when the task depends on the argument we have been having.** Designing the next piece. Weighing a decision against a trap we found. Anything where "you had to be there" is actually true.
+
+**When you do hand off, the prompt you write him must carry its own context.** A new session knows nothing. It has not read the traps file, it does not know what failed yesterday, it does not know which laptop he is on. Everything it needs goes in the prompt: what the project is, where the files are, what state things are in, what specifically to do, and what to bring back. Assume it reads `CLAUDE.md` and nothing else.
+
+**Two things the handed-off session must be told to do, every time:**
+
+1. **Go slowly, one small step per reply.** Say what we are doing and why, tell Rohit exactly where to navigate and what to type, wait for him to come back with the result, then move on. Never a list of six commands at once.
+2. **Ask him to run things and paste the output, rather than running them itself.** He has the terminal open anyway. A session that asks for output instead of gathering it spends a fraction of the memory, and he learns more watching it happen than reading a summary of it.
+
+**And say what to bring back.** The handed-off session should end by telling him exactly what to copy into the session that sent him — the version numbers, the error text, the "it works now". Otherwise the answer is stranded in a chat nobody returns to.
+
 ## Rule 15 — Keep a learning-notes file for him
 
 Rohit wants to re-read interesting domain facts he learns along the way, like what percentage of income banks allow for EMIs. These go in `LEARNING-NOTES.md`, written simply, with sources where there are any.

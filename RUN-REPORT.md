@@ -11,10 +11,18 @@ You were away. The job was to finish everything that was left: Piece 19, then Ph
 | Phase | What it is | Passed | Skipped | Total | Cleared 70%? |
 |---|---|---|---|---|---|
 | 1 | REST API, React and Streamlit front-ends | 20 | 0 | 20 | Yes — 100% |
-| 2 | RAG chatbot reading the user manual | 20 | 0 | 20 | Yes — 100% |
+| 2 | RAG chatbot reading the user manual | 20 | 0 | 20 | Yes — 100%, **but see the warning below** |
 | 3 | Agent with five tools reading live data | 20 | 0 | 20 | Yes — 100% |
 | 4 | MCP server and the staff chat interface | 25 | 0 | 25 | Yes — 100% |
 | 5 | Four-agent underwriting review | 25 | 0 | 25 | Yes — 100% |
+
+> ### ⚠️ Phase 2 needs re-confirming before you trust that row
+>
+> Phase 2 passed cleanly **twice** during this run — 22 of 22, zero skips, both times. But the very last verification run of the day, after the Gemini daily quota had run out (see "What worries me" below), came back **9 failed, 60 passed**, with three of the named failures in `tests/phase2/test_observability.py` and their error text truncated to `langchai…`.
+>
+> **My strong expectation is that this is the exhausted quota, not broken code** — those are the LangSmith and generation tests, they are the ones that need live API calls, and nothing in Phase 2 was touched after it last passed. But **I did not prove that**, because re-running it would have spent quota that was already gone.
+>
+> **Do this first, on a day when the quota has reset:** run `pytest tests/phase2 -v` from `backend/` and read the actual error text. If it is `RESOURCE_EXHAUSTED` or a LangSmith rate-limit, the row above stands. If it is anything else, this row is wrong and Phase 2 needs fixing.
 
 Those are the trainer's own test counts. The suites actually run more than that, because we wrote extra tests of our own and because four Phase 1 cases are parametrised:
 
