@@ -46,6 +46,28 @@ Three ideas came up for our own unique feature. **The Manager's Morning Briefing
 
 ---
 
+## Automatic provider switching, when one AI runs out
+
+Raised by Rohit on 2026-09-07, right after the Gemini free tier's **daily** 500-request cap ran out mid-run (T-66). Parked deliberately — he wants to discuss the options before anything is built.
+
+**The idea:** instead of one provider with a manual `LLM_PROVIDER` setting, try providers in order and move to the next when one refuses. Gemini first, then something else, so a quota wall never costs the demo its AI narrative.
+
+**What already exists:** `llm_provider.py` has the switch, `get_llm()` is the single place every phase asks for a model, and `.env` already carries the provider choice. So this is a change in one file, not a change everywhere — that part was designed for back in Phase 2.
+
+**What still needs deciding (the actual discussion):**
+
+| Question | The options |
+|---|---|
+| Fall back to what? | A second hosted free tier (another key, no install, its own limits) · Ollama running locally (no limits, no key, but a ~5GB download, slower, and not possible on the Wipro laptop) · both, chained |
+| Does the screen say which AI answered? | Name the provider on screen, the way the briefing already says "Written by AI" — honest, and a good thing to point at in a demo · or log it only and keep the UI quiet |
+| How much switching logic is worth explaining? | Every extra provider is one more thing to justify in a mentor code walkthrough |
+
+**Worth remembering before building it:** nothing actually broke when the quota ran out. Every AI feature already degrades to deterministic text and says so, and no number anywhere is computed by an LLM (D-19) — so a dead provider costs prose, not correctness. This is insurance on narrative quality, not a fix for something broken, and it should stay small.
+
+**Size:** Small to Medium, depending on whether Ollama is in scope.
+
+---
+
 ## Things the manual promises that the system doesn't do yet
 
 The user manual is written for Phase 2. It describes some things the trainer's Phase 1 never builds. Either build them later or trim the manual.

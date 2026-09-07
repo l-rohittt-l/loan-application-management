@@ -3,7 +3,7 @@
 **Associate Name:** Rohit Sawant
 **POC Number:** POC-01 — Loan Application Management System
 **Tech Stack:** Python (FastAPI, SQLAlchemy, SQLite) · React 18 + Vite · Streamlit
-**Date:** 2026-09-06
+**Date:** 2026-09-07
 
 ## Phase Results
 
@@ -21,8 +21,21 @@ Phase 2 and Phase 3 each have a few extra tests of ours beyond the trainer's cou
 
 **Weighted Total:** 15.0 (Phase 1) + 20.0 (Phase 2) + 20.0 (Phase 3) + 25.0 (Phase 4) + 20.0 (Phase 5) = **100.0 / 100**
 
-**All five phases cleared the 70% line.** Every test in every phase passes, and none of them skip — a skipped test reads exactly like a passing one in a summary line, so the number that counts is passed-plus-skipped against the total. Full test count across the project: 135 (20 + 22 + 23 + 25 + 25, plus 20 of our own in `tests/ours` and the parametrised Phase 1 runs).
-**Performance Tier:** in progress
+**All five phases cleared the 70% line.** Every test in every phase passes, and none of them skip — a skipped test reads exactly like a passing one in a summary line, so the number that counts is passed-plus-skipped against the total.
+
+**What the suites actually run**, which is more than the trainer's counts above, because we added tests of our own and four Phase 1 cases are parametrised:
+
+| Suite | Tests |
+|---|---|
+| `tests/phase1` | 27 |
+| `tests/phase2` | 22 |
+| `tests/phase3` | 23 |
+| `tests/phase4` | 25 |
+| `tests/phase5` | 25 |
+| `tests/ours` | 20 |
+| **Total** | **142** |
+
+**Performance Tier:** all five phases cleared — the top band, since rank depends on how many phases clear 70% rather than on total score.
 
 ## Failed Test Cases (List each failed TC ID and reason)
 
