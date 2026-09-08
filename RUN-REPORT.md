@@ -38,6 +38,8 @@ Those are the trainer's own test counts. The suites actually run more than that,
 | `tests/ours` | 20 |
 | **Total** | **142** |
 
+**Verified as one command on 2026-09-08:** `pytest tests/` from `backend/` gives **142 passed, 0 failed, 0 skipped** in 9 minutes 34 seconds, with the backend running. That is the whole project checked the way a reviewer would check it — and it was the first time it had ever been possible, because until that day the command aborted during collection (T-72, below).
+
 **Weighted total: 100 out of 100.** Phase weights from the blueprint are 15, 20, 20, 25 and 20. Rank depends on how many phases clear 70%, and all five do.
 
 **On skipped tests.** Every number above is passed-plus-skipped against the total, because a skipped test reads exactly like a passing one in a summary line — that is how two of Phase 2's tests hid for days in an earlier session. There are no skips anywhere now.

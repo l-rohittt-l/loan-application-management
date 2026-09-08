@@ -4,6 +4,16 @@ Newest entries at the top. Short on purpose.
 
 ---
 
+## 2026-09-08 — A sweep for anything still broken, and the command a grader types first
+
+**Asked for:** with the tracked list closed out, go looking for problems nobody had reported yet, and fix them.
+**Built:** four fixes. The important one: **`pytest tests/` did not work at all.** Every phase passed on its own, but running them all together aborted during collection before a single test ran — Phase 3 and Phase 5 both have a `test_e2e.py`, and three of the test folders were missing an `__init__.py`, so pytest could not tell the two files apart. Phases 1, 2 and ours had one; 3, 4 and 5 never got one, because each was built in a different session and nobody ever ran the whole thing together. Also: the README still said "Phase 1 status: complete" and gave no way to run the Phase 4 chat screen or Phase 5, so it was rewritten for all five phases with every command actually run before being written down. A lint sweep found a ternary used as a statement in Piece 19's form code and seven dead imports.
+**Found:** **142 passed, 0 failed, 0 skipped, in one command, in 9 minutes 34 seconds.** That is the entire project verified the way a reviewer verifies it, and it had never been possible before today. Also confirmed along the way that the manual's numbers still match `rules.py` exactly (Rule 12 holds), the API returns the right codes on every error path, no secrets are tracked in git, and the front-end reads its backend address from a setting rather than from code.
+**Realised:** the collection bug is the lesson of the day. Six suites, each one green, each one verified in isolation — and the failure existed only in the combination. Nothing was wrong with any phase; what was wrong was that nobody had typed the command the grader types. Logged as T-72.
+**Next:** one gap left in the whole project — the briefing card and the Phase 4 chat screen still need a human look in a browser.
+
+---
+
 ## 2026-09-08 — Answering T-69, and the third model nobody had noticed
 
 **Asked for:** the verification session came back with four results and one open question — the running model is `gemini-3.5-flash-lite` but `CLAUDE.md` still advertised Gemini 2.0 Flash. Update the doc, or pin the model back?
