@@ -1,89 +1,87 @@
 # Prompt to paste into a new session
 
-Copy everything below the line into a fresh Claude Code chat. Suggested settings for that session: **Sonnet, medium effort** — it is careful checking, not heavy reasoning.
+Copy everything below the horizontal line into a fresh Claude Code chat.
 
-When that session is finished it will tell you exactly what to copy back here.
+Suggested settings: **Opus, high effort.** This is real design and code work across backend and front-end, not mechanical checking.
 
 ---
 
-I'm Rohit Sawant. I'm working on POC-01, a Loan Application Management System, for Wipro's Agentic AI Readiness Program. The project lives at `C:\Users\Sawan\OneDrive\Desktop 1\FINAL_CHANCE`. Please read `CLAUDE.md` in that folder first — it explains how I like to work.
+I'm Rohit Sawant, building POC-01, a Loan Application Management System, for Wipro's Agentic AI Readiness Program. The project is at `C:\Users\Sawan\OneDrive\Desktop 1\FINAL_CHANCE`.
 
-Another session just finished a long unattended build and handed me four checks to run. It ran out of its own working memory, so these were handed to you to save it. You do not need to know anything about how the project was built — everything you need is below.
+**Read these first, in this order:**
 
-## How I need you to work with me
+1. `CLAUDE.md` — how I work. Rules 7, 9, 11, 14 and 17 matter most.
+2. `BUILD-PLAN.md` — go to the section **"PIECE 22 — One assistant in React that gets smarter, with role-gated tools"**. That is the job. The full plan is already written; you are continuing it, not designing it.
+3. `TRAPS-AND-DECISIONS.md` — the whole thing. Every trap in there cost real time to find once already. T-75 is the one this piece is built on.
+4. `PROGRESS-LOG.md` — the top few entries, for where things stand.
 
-This matters more than the tasks themselves:
+## Where the project is
 
-- **One small step per reply.** Tell me what we're doing and why, tell me exactly where to navigate and exactly what to type, then stop and wait for me to come back with the result. Never give me a list of six commands.
-- **Ask me to run things and paste the output back to you — don't run them yourself.** I have the terminal open. This saves your memory and I learn more watching it happen.
-- **Tell me where to click or navigate before telling me what to type.** Assume I need the path, not just the command.
-- **I'm new to Python** (three years of Java). If something is worth understanding, explain it in plain words as we go.
-- If a check passes, say so plainly and move to the next. If something fails, help me understand what it means before we try to fix it.
+All five phases are built and passing. `pytest tests/` from `backend/` gives **142 passed, 0 failed, 0 skipped** (takes about 10 minutes; it makes real AI calls). Tagged `v1.0.0`. The working tree is clean and the last commit is `2260e94`.
 
-## What you need to know about the project
+## What Piece 22 is, and why
 
-- Everything runs from the `backend` folder: `C:\Users\Sawan\OneDrive\Desktop 1\FINAL_CHANCE\backend`
-- There's a Python virtual environment there. The Python to use is always `.\venv\Scripts\python.exe` — never plain `python`, because that's a different Python that doesn't have the packages.
-- The app is a FastAPI backend (port 8000), a React front-end (port 5173), and a Streamlit front-end (port 8501).
-- It uses Google's Gemini for its AI features. **The free tier allows 500 requests per day and yesterday's run used them all up.** They reset on Google's clock. This matters for task 1.
-- I'm on Windows, using PowerShell.
+I noticed a problem and pushed back on it. Phases 3, 4 and 5 were built as separate things — Phase 3 reachable only from a Python prompt, Phase 4 as its own Streamlit page. But the React **Assistant** page, which is the screen customers actually use and the one in the demo, still only had Phase 2's brain (answering from the user manual).
 
-## The four things to check, in this order
+So the smartest parts of the product were invisible in the product.
 
-### Task 1 — Is Phase 2 actually passing? (most important)
+**My instruction:** every phase should build *on top of* the Phase 2 chatbot, in the same chat window. One assistant that got smarter three times, not three separate chat screens that each know different things.
 
-**The problem:** The previous session reported Phase 2 as passing 22 of 22 tests. It passed twice that day. But the very last run of the day came back with **9 failures**, three of them in `tests/phase2/test_observability.py`, and the error text was cut off so nobody could read it. That last run happened *after* the daily Gemini quota ran out.
+**The priority is getting the trainer's Phase 3, 4 and 5 functions working in the React app.** Other things were parked to make room — they are listed in `FUTURE-UPGRADES.md` under "Parked while Piece 22 puts Phases 3-5 into the React chat". Do not pick those up.
 
-**The expectation:** those failures are the exhausted quota, not broken code. But nobody proved it, so right now Phase 2's result is unverified.
+## The safety rule, which matters more than the feature
 
-**What I need from this task:** run the Phase 2 tests and read the *actual* error message. Then tell me which of these it is:
+**Customers must only ever see the manual and their own applications.** Never anyone else's data, and never the ability to change anything. Bank staff can read everything. Officers get everything except paying money out. Managers get everything.
 
-- Error mentions `RESOURCE_EXHAUSTED`, `429`, or a rate limit → it's the quota. Phase 2 is fine.
-- Error is anything else → Phase 2 has a real problem and we need to understand it.
+Step 1 of this piece is **already done and committed** — that is commit `2260e94`. It closed a real hole: the AI used to call the loan API as a branch manager no matter who was asking, so wiring it into the customer chat unchanged would have shown one customer another customer's loan.
 
-Please walk me through starting the backend server first if the tests need it, then running the tests, then reading the output together. The tests take several minutes because they make real AI calls, so warn me about that before I start.
+The fix is `acting_as(email, role)` in `backend/app/services/loan_api_client.py`. Every API call inside that block happens **as the person who asked**, so Phase 1's existing owner-scoping does the work — no new permission system. Six tests in `backend/tests/ours/test_agent_acts_as_caller.py` guard it, including one proving end to end that a customer gets a 403 on someone else's application.
 
-### Task 2 — Look at two screens nobody has ever seen
+**Use `acting_as()` around every agent call you wire up. Do not bypass it.**
 
-Two parts of the app were built and tested but **never actually looked at in a browser**, because the browser tooling broke during the build. The tests pass and the code builds cleanly, but this project has already been burnt once by a bug that was invisible to everything except a screenshot.
+## What is left — steps 2 to 5
 
-The two screens:
+These are written out in `BUILD-PLAN.md`; this is the summary.
 
-1. **The Manager's Morning Briefing** — a card at the top of the manager's dashboard in the React app. Log in as `anita@bank.com` / `Manager@123`. I need to check it renders properly, the text is readable, nothing overlaps, and the "How this was worked out" button opens a panel with real numbers in it.
-2. **The Phase 4 staff chat interface** — a separate Streamlit app at `backend/mcp_server/chat_interface.py`. I need to check the page loads, the sidebar shows a session ID and four quick-action buttons, and clicking a quick-action button actually produces an answer from the AI (not just my own message appearing with nothing after it).
+**Step 2 — route the chat to the Phase 3 agent.** `backend/app/routers/chat.py` currently calls the Phase 2 RAG chain directly (line 74, `from rag.rag_chain import answer_question, get_chain`) and always returns `mode="rag"`. Change it to call the agent instead — `build_agent()` and `run_agent()` in `backend/agent/agent.py` — wrapped in `acting_as()`. Policy questions still reach the manual, because `search_loan_policy` is one of the agent's five tools. `mode` becomes `"agent"`, and the response should carry which tools ran.
 
-Walk me through starting each one and tell me what to look for. If something looks wrong, help me describe it precisely enough that the other session can fix it.
+`ChatResponse` in `backend/app/schemas/chat.py` has `answer`, `mode`, `sources`, `duration_ms`. It already anticipates this: its comment says *"Phase 3 adds 'agent', Phase 5 adds 'review'"*.
 
-### Task 3 — Regenerate two missing test result files
+**Step 3 — the screen.** `frontend/src/pages/Assistant.jsx` should show which tools were used for each answer, the way Phase 4's Streamlit chat already does. Sources still show for manual-based answers.
 
-The project submits test reports as XML files in a `results` folder. Phase 3, 4 and 5 have theirs. **Phase 1 and Phase 2 are missing** and need regenerating.
+**Step 4 — Phase 4's action tools, staff only.** Tools that change data appear only for staff. A destructive instruction must restate what it will do and ask before acting — match the confirmation dialogs already used on the application detail page and in Piece 19's form.
 
-The command shape is `pytest tests/phase1 --junitxml=../results/phase1-results.xml` run from the `backend` folder using the virtual environment's Python — but please give me the exact full command and tell me where to run it.
+**Step 5 — Phase 5 in the chat.** "Assess application 7" runs the four-agent underwriting review and shows the verdict with its reasoning.
 
-Do Phase 1 first (it's fast, no AI calls). Only do Phase 2 if task 1 showed Phase 2 is healthy.
+## How I need you to work
 
-### Task 4 — Check whether Ollama is worth installing
+- **One step at a time.** Build step 2, show me, commit it, stop. Do not chain into step 3 on your own.
+- **Keep every existing test green.** After each step, at minimum run `pytest tests/phase1 tests/ours -q` from `backend/`. Before saying a step is finished, run the phase suites it touches. 142 passing is the baseline and it must not drop.
+- **Commit after each step** with a plain-words message, per Rule 11.
+- **Explain in plain words, not jargon.** I have three years of Java and I am new to Python. If you use a technical term, gloss it. I have told a previous session it was bad at explaining — short sentences, say the concrete thing, do not make me read four paragraphs to find the point.
+- **Tell me what to click to check your work.** After each step, tell me exactly where to navigate and what I should see.
+- Update `PROGRESS-LOG.md` and `TRAPS-AND-DECISIONS.md` as you go, per Rules 1 and 2. Do not narrate that beyond one line.
 
-The project can fall back to a local AI called Ollama when Gemini's quota runs out, but **Ollama isn't installed on this laptop**, so that fallback doesn't currently exist.
+## Two practical things
 
-I don't want to install it yet — I want to understand the trade-off first. Please tell me, in plain words:
+**The AI has a daily quota.** Google's free tier is 500 requests a day, and a full test run spends a few dozen. If AI answers suddenly stop, that is the quota, not your code — every AI feature degrades to plain text and says so on screen. It resets on Google's clock.
 
-- Roughly how big the download is and how long it typically takes
-- Whether it will be noticeably slower than Gemini for this app's use
-- Whether it runs on Windows without fuss
-- Whether it's worth it for a five-minute demo, given the alternative is just "don't run the tests on demo day"
+**Run `python clean_test_data.py` from `backend/` after running the test suites.** The Phase 3, 4 and 5 tests write real rows into the demo database. One full run once left 60 junk applications in the manager's pipeline, which is what a reviewer would have seen first.
 
-Then let me decide. Don't install anything without asking me first.
+## To start the app
 
-## When you're done
+Backend, from `backend/`:
+```powershell
+.\venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000
+```
 
-End the session by giving me a short block I can copy straight back into the other chat, containing:
+React, from `frontend/`:
+```powershell
+npm run dev
+```
 
-1. **Task 1 result** — was it the quota, or a real problem? Paste the actual error text you saw.
-2. **Task 2 result** — did both screens look right? If not, exactly what looked wrong.
-3. **Task 3 result** — which results files now exist.
-4. **Task 4 result** — what I decided about Ollama.
+Then http://localhost:5173. Logins: manager `anita@bank.com` / `Manager@123`, officer `rajan@bank.com` / `Officer@123`, customer `priya@example.com` / `Customer@123`.
 
-Keep that block short and factual. It's going into a session that's low on memory.
+Always use `.\venv\Scripts\python.exe`, never plain `python` — that is a different Python without the packages.
 
-Please start with task 1, one small step at a time.
+Please start by reading the four files above, then tell me in a few lines what you understand step 2 to be and how you plan to do it. Then build it.
