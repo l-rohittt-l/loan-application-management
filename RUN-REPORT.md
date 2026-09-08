@@ -149,7 +149,13 @@ Found only by reading the warning lines in the log. Fixed (T-64). The lesson wor
 
 Honest uncertainty, not known faults.
 
-- **Nobody has still looked at two screens in a browser.** This is now the single outstanding gap in the whole project, and it survived two sessions because both lost their browser tooling.
+- **The briefing card has now been seen — and looking at it found a bug, as predicted.** Rohit opened it on 2026-09-08. The layout holds, the three paragraphs read well, the four stats sit correctly, and the "Written by AI" pill confirmed the AI narrative working live for the first time. The writing was genuinely good: it named application #1 as most critical with three specific reasons and recommended a concrete first action.
+
+  **But "How this was worked out" was rendering as plain text rather than a button** — ghost styling with no border or background, standing alone under a divider with no neighbouring buttons to make it look pressable. The panel it opens is the entire trust story of the feature, and nothing told a manager it could be clicked. Fixed as a proper disclosure control with a rotating chevron (T-73).
+
+  That is now **twice** this project has shipped a control invisible to code review, to a clean build and to a green test suite, and caught only by a person looking at a rendered page (T-42 was the first). It is the strongest argument in this report for looking at screens.
+
+- **The Phase 4 chat screen still has not been seen.** One screen left. Its behaviour is proven — driven end to end, the quick-action button returns a real AI answer — but layout and readability are unverified.
 
   What *has* been checked, on 2026-09-08: the briefing endpoint returns a real narrative, eight headline numbers and three populated tables, and `MorningBriefing.jsx` consumes exactly those fields with no mismatch. The Streamlit chat was driven end to end with Streamlit's own `AppTest` — the title renders, the session ID shows, there are exactly four quick-action buttons, and clicking one returns a genuine AI answer naming real applications, with no exceptions raised. That last check matters most, because the dead quick-action button was a real bug that no unit test caught.
 
@@ -164,7 +170,7 @@ Honest uncertainty, not known faults.
 
 In this order:
 
-1. **Look at the two screens nobody has seen** — the Phase 4 chat interface and the briefing card on the manager's dashboard — in a real browser, once. Two sessions have now tried and both lost their browser tooling. Ten minutes closes the last open gap in the project.
+1. **Look at the Phase 4 chat screen** — the one screen still unseen. The briefing card was checked on 2026-09-08 and that immediately found a real bug (T-73), which is the argument for doing the same here. Start it with `streamlit run mcp_server/chat_interface.py --server.port 8502` from `backend/`.
 2. **Review D-19**, the Phase 5 numbers decision. It is defensible and I would argue for it in a walkthrough, but it is a departure from the trainer's design and you should agree with it before a mentor asks.
 3. **Practise the five-minute demo** against clean seed data, and pick which of the five phases you actually show. All five work; five minutes is not enough for all five.
 4. **Fix T-65 properly** — give the Phase 3/4/5 tests their own database instead of relying on a cleanup script and a good memory.

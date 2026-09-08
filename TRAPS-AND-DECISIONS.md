@@ -275,6 +275,16 @@ A suffixed name fails both instantly. **Fix: Gemini, the default, uses the bare 
 
 # Settled
 
+### 2026-09-08 · T-73 — A ghost button alone on a card reads as plain text, not a control
+
+**What's wrong:** the Morning Briefing's "How this was worked out" control was a `Button` with `variant="ghost"`. Ghost styling is deliberately bare — `background: transparent; border-color: transparent; box-shadow: none` — and only appears on hover. That works in a toolbar, where the buttons beside it make it obviously pressable. This one sits **alone, under a divider**, with nothing next to it, so it rendered as a stray dark line of text. Nothing told a manager it could be pressed until the pointer happened to land on it — and the panel it opens is the whole trust story of the feature, the numbers behind every sentence the AI wrote.
+
+**Found by looking at a screenshot**, not by reading code, not by a test, and not by a clean build. Exactly like T-42, where filter dropdowns had no styling because the CSS was scoped to `form` and the toolbars were plain `<div>`s. **Twice now the same shape of bug has been invisible to everything except a human eye on a rendered page.**
+
+**Fix:** it is a disclosure control, so it now looks like one — a real border, a page-coloured fill, a hover and focus state, and a chevron that rotates to show which way it will move. `aria-expanded` too, so a screen reader gets the same information the chevron gives everyone else.
+
+**Rule of thumb worth keeping:** a ghost or borderless control needs neighbours to be legible. Standing on its own it is just text, and users do not hover hopefully over text.
+
 ### 2026-09-08 · T-72 — `pytest tests/` failed to collect, even though every phase passed on its own
 
 **What's wrong:** every phase suite passed when run individually — `pytest tests/phase3`, `pytest tests/phase5`, and so on. But running **all of them together**, which is the first thing a reviewer would type, failed before a single test executed:

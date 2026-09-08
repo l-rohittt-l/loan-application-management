@@ -89,9 +89,22 @@ export default function MorningBriefing() {
             <div><strong>{rupees(numbers.value_awaiting_decision)}</strong><span>value in the queue</span></div>
           </div>
 
-          <Button size="sm" variant="ghost" onClick={() => setShowWorking((v) => !v)}>
-            {showWorking ? "Hide how this was worked out" : "How this was worked out"}
-          </Button>
+          {/* Not a ghost button. A ghost has no border or background until you
+              hover it, which is fine in a toolbar where the buttons beside it
+              make it obviously clickable — but this one stands alone under a
+              divider, and a screenshot showed it reading as a stray line of
+              text. Nothing said "press me" until the pointer happened to land
+              on it. It is a disclosure control, so it now looks like one, with
+              a chevron that turns to show which way it will go. */}
+          <button
+            type="button"
+            className="briefing-toggle"
+            aria-expanded={showWorking}
+            onClick={() => setShowWorking((v) => !v)}
+          >
+            <Icon name="chevronDown" size={15} className={showWorking ? "chev-open" : "chev-closed"} />
+            <span>{showWorking ? "Hide how this was worked out" : "How this was worked out"}</span>
+          </button>
 
           {showWorking && (
             <div className="briefing-working">

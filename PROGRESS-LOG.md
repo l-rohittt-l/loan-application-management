@@ -4,6 +4,16 @@ Newest entries at the top. Short on purpose.
 
 ---
 
+## 2026-09-08 — Rohit looked at the briefing, and looking found a bug
+
+**Asked for:** the backend started so Rohit could finally open the Morning Briefing in a browser — the last thing in the project nobody had actually seen.
+**Built:** one fix. The card itself was right: layout holds, the three paragraphs read well, the four stats sit properly, and the "Written by AI" pill confirmed the AI narrative working live for the first time. The writing was good too — it named application #1 as most critical with three specific reasons, then recommended a concrete first action naming four files. But **"How this was worked out" was rendering as plain text rather than a button.** It was a ghost-variant button, which has no border or background until you hover it. That is fine in a toolbar where the buttons beside it make it obviously pressable; this one stands alone under a divider, so it just looked like a stray line of text. Now a proper disclosure control with a border, a hover and focus state, a chevron that rotates to show which way it will open, and `aria-expanded` for screen readers.
+**Found:** the panel that button opens is the entire trust story of the feature — the real numbers behind every sentence the AI wrote — and nothing on screen told a manager it could be clicked.
+**Realised:** that is **twice** this project has shipped a control that was invisible to code review, to a clean build and to a green test suite, and was caught only by a person looking at a rendered page. T-42 was the filter dropdowns in Phase 1; this is T-73. The pattern is exact enough to be a rule now: a borderless control needs neighbours to be legible, and nobody hovers hopefully over text.
+**Next:** one screen left unseen — the Phase 4 staff chat.
+
+---
+
 ## 2026-09-08 — A sweep for anything still broken, and the command a grader types first
 
 **Asked for:** with the tracked list closed out, go looking for problems nobody had reported yet, and fix them.

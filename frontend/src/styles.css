@@ -559,6 +559,31 @@ th.sorted { color: var(--ink-900); }
   margin-top: 0.15rem;
 }
 
+/* The "how this was worked out" control. It opens the numbers behind the
+   briefing, so it has to look pressable on its own, standing under a divider
+   with no other button beside it to borrow context from. */
+.briefing-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 550;
+  color: var(--ink-700);
+  background: var(--page);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: background var(--ease), border-color var(--ease);
+}
+.briefing-toggle:hover { background: #e9eef5; border-color: #94a3b8; }
+.briefing-toggle:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+/* The chevron points down when closed and up when open, so the control says
+   which way it is about to move before you press it. */
+.briefing-toggle .chev-closed { transform: rotate(0deg); transition: transform var(--ease); }
+.briefing-toggle .chev-open   { transform: rotate(180deg); transition: transform var(--ease); }
+
 .briefing-working h3 {
   font-size: 0.85rem;
   text-transform: uppercase;
