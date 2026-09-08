@@ -56,8 +56,15 @@ class Settings(BaseSettings):
     # The models the trainer named — gemini-2.0-flash and models/text-embedding-004 —
     # have both been withdrawn by Google (T-51). These are the current
     # replacements, kept here so swapping them is one line in .env.
+    #
+    # This default must match what .env sets (T-69). It used to say
+    # gemini-3.8-flash while .env said gemini-3.5-flash-lite, so anyone whose
+    # .env was missing that one line would silently run a different, slower
+    # model than the one chosen — and the one that was chosen was chosen for a
+    # reason: gemini-3.5-flash-lite was the only model that survived the free
+    # tier's rate limit without refusing (T-55).
     google_api_key: str = ""
-    gemini_chat_model: str = "gemini-3.8-flash"
+    gemini_chat_model: str = "gemini-3.5-flash-lite"
     gemini_embed_model: str = "models/gemini-embedding-001"
 
     ollama_base_url: str = "http://localhost:11434"

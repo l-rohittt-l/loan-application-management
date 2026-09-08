@@ -11,18 +11,20 @@ You were away. The job was to finish everything that was left: Piece 19, then Ph
 | Phase | What it is | Passed | Skipped | Total | Cleared 70%? |
 |---|---|---|---|---|---|
 | 1 | REST API, React and Streamlit front-ends | 20 | 0 | 20 | Yes — 100% |
-| 2 | RAG chatbot reading the user manual | 20 | 0 | 20 | Yes — 100%, **but see the warning below** |
+| 2 | RAG chatbot reading the user manual | 20 | 0 | 20 | Yes — 100%, **re-confirmed 2026-09-08** |
 | 3 | Agent with five tools reading live data | 20 | 0 | 20 | Yes — 100% |
 | 4 | MCP server and the staff chat interface | 25 | 0 | 25 | Yes — 100% |
 | 5 | Four-agent underwriting review | 25 | 0 | 25 | Yes — 100% |
 
-> ### ⚠️ Phase 2 needs re-confirming before you trust that row
+> ### Phase 2 was doubted, then cleared — 2026-09-08
 >
-> Phase 2 passed cleanly **twice** during this run — 22 of 22, zero skips, both times. But the very last verification run of the day, after the Gemini daily quota had run out (see "What worries me" below), came back **9 failed, 60 passed**, with three of the named failures in `tests/phase2/test_observability.py` and their error text truncated to `langchai…`.
+> The last verification run of 2026-09-07, after the Gemini daily quota had run out, came back **9 failed, 60 passed**, three of them in `tests/phase2/test_observability.py` with the error text truncated. That was enough to stop trusting the row above, and this report said so rather than claiming a clean sweep.
 >
-> **My strong expectation is that this is the exhausted quota, not broken code** — those are the LangSmith and generation tests, they are the ones that need live API calls, and nothing in Phase 2 was touched after it last passed. But **I did not prove that**, because re-running it would have spent quota that was already gone.
+> **A separate session re-ran it the next day, after the quota reset: 22 of 22, three times over, with no code changed in between.** So the failures were the exhausted quota and nothing else.
 >
-> **Do this first, on a day when the quota has reset:** run `pytest tests/phase2 -v` from `backend/` and read the actual error text. If it is `RESOURCE_EXHAUSTED` or a LangSmith rate-limit, the row above stands. If it is anything else, this row is wrong and Phase 2 needs fixing.
+> Worth noting how that was proved, because it is the better method: there was no `RESOURCE_EXHAUSTED` error to read, because once the quota reset **there were no failures left at all**. Three clean runs against unchanged code is stronger evidence than one error string would have been.
+>
+> A bonus from the same run: the two LangSmith observability tests now **pass** rather than skip, which confirms the API key is properly wired (T-68).
 
 Those are the trainer's own test counts. The suites actually run more than that, because we wrote extra tests of our own and because four Phase 1 cases are parametrised:
 
@@ -145,8 +147,12 @@ Found only by reading the warning lines in the log. Fixed (T-64). The lesson wor
 
 Honest uncertainty, not known faults.
 
-- **The briefing's AI narrative has never been seen live.** Its code path is identical to Phase 5's reasoning, which I did verify producing real prose, and its fallback path is verified. But the quota ran out before I could show the finished briefing with real AI writing in it. First thing to check when the quota resets.
-- **I could not take screenshots for Phase 4 and 5.** The browser tooling disconnected partway through the run. For Phase 4 I used Streamlit's own `AppTest`, which actually executes the script — and that is what caught the dead quick-action button that no test would have. But nobody has *looked* at the Phase 4 chat screen or the briefing card in a real browser. The React build is clean and the API contract matches the component exactly, but "builds clean" is not "looks right", and Phase 1 already taught us that the worst bug was invisible to everything except a screenshot (T-42).
+- **Nobody has still looked at two screens in a browser.** This is now the single outstanding gap in the whole project, and it survived two sessions because both lost their browser tooling.
+
+  What *has* been checked, on 2026-09-08: the briefing endpoint returns a real narrative, eight headline numbers and three populated tables, and `MorningBriefing.jsx` consumes exactly those fields with no mismatch. The Streamlit chat was driven end to end with Streamlit's own `AppTest` — the title renders, the session ID shows, there are exactly four quick-action buttons, and clicking one returns a genuine AI answer naming real applications, with no exceptions raised. That last check matters most, because the dead quick-action button was a real bug that no unit test caught.
+
+  What is **still unverified: layout, overlap, and readability on both screens.** Data and behaviour are proven; appearance is not. Phase 1 already taught this project that its worst bug was invisible to code review, to a clean build and to a green test suite, and was only ever found by looking at a screenshot (T-42). Ten minutes with a browser closes this.
+- **The briefing's AI narrative has been seen working, but not in the finished card.** The endpoint produces real prose and the fallback is verified, but the AI-written version has not been viewed inside the rendered dashboard card. Same ten minutes as above.
 - **The Streamlit chat interface has had less use than the React app.** It passes its tests and I drove it end to end, but the React front-end is the one that gets demoed and the one that has been inspected hardest.
 - **The `sample_application_id` fixtures create real data every run.** That is what caused problem 2 above. The cleanup script handles it, but it will keep happening every time the suite runs.
 
@@ -156,12 +162,17 @@ Honest uncertainty, not known faults.
 
 In this order:
 
-1. **Look at the two screens nobody has seen** — the Phase 4 chat interface and the briefing card on the manager's dashboard — in a real browser, once. Phase 1's worst bug was invisible to code review and only a screenshot found it.
+1. **Look at the two screens nobody has seen** — the Phase 4 chat interface and the briefing card on the manager's dashboard — in a real browser, once. Two sessions have now tried and both lost their browser tooling. Ten minutes closes the last open gap in the project.
 2. **Review D-19**, the Phase 5 numbers decision. It is defensible and I would argue for it in a walkthrough, but it is a departure from the trainer's design and you should agree with it before a mentor asks.
-3. **Decide the AI quota question** — paid key, Ollama, or just discipline about when the tests run. Then have the provider-switching discussion you asked for.
+3. **Practise the five-minute demo** against clean seed data, and pick which of the five phases you actually show. All five work; five minutes is not enough for all five.
 4. **Fix T-65 properly** — give the Phase 3/4/5 tests their own database instead of relying on a cleanup script and a good memory.
-5. **Regenerate the Phase 1 and 2 results files** for submission. `results/` currently has Phase 3, 4 and 5; the first two need a re-run with `--junitxml`.
-6. **Practise the five-minute demo** against clean seed data, and pick which of the five phases you actually show. All five work; five minutes is not enough for all five.
+5. **Have the provider-switching discussion** when you want it. Parked in `FUTURE-UPGRADES.md` with the open questions.
+
+**Done since this report was first written, on 2026-09-08:**
+
+- ~~Confirm Phase 2~~ — done, 22 of 22, three runs, quota was the only culprit.
+- ~~Regenerate the Phase 1 and 2 results files~~ — done, all five are now in `results/`.
+- ~~Decide the AI quota question~~ — **decided: don't install Ollama before the demo.** Roughly 3GB and 10-20 minutes, installs on Windows without fuss, but noticeably slower without a strong GPU and might fail Phase 2's own latency test. The quota is 500 a day and a full test run spends a few dozen, so the real protection is simply not running the whole suite on demo morning. Installing an untested fallback days before a demo adds a failure mode rather than removing one.
 
 ---
 

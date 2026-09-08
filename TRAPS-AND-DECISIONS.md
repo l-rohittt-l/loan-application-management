@@ -221,6 +221,24 @@ A suffixed name fails both instantly. **Fix: Gemini, the default, uses the bare 
 
 **T-29 · The project lives inside OneDrive.** Git and OneDrive can fight: OneDrive syncs the hidden `.git` folder while git is writing to it, and that occasionally corrupts the repository. For a solo project with GitHub as the backup, the risk is small and the fix is to re-clone. If it ever misbehaves, the cure is to either move the project out of OneDrive or tell OneDrive to skip this folder.
 
+### Verification session (2026-09-08)
+
+**T-67 - The Phase 2 "9 failures" were the exhausted daily quota, now proven.** The last run of 2026-09-07 failed 9 tests, 3 of them in `test_observability.py`, with the error text truncated so nobody could read it. On 2026-09-08, with the quota reset and no code changed, Phase 2 ran three times and passed 22 of 22 every time. Nothing was ever broken. Closes the open question from T-66.
+
+**T-68 - The two LangSmith tests now run instead of skipping.** `test_langsmith_trace_created` and `test_trace_contains_retrieval_metadata` are guarded by `skipif` on `LANGCHAIN_API_KEY`. On 2026-09-08 both PASSED, so the key is set in `.env`. T-50 recorded them as unproven; they are now proven.
+
+**T-69 - The model actually running is `gemini-3.5-flash-lite`, not the documented Gemini 2.0 Flash.** Every Gemini call in the test output names `gemini-3.5-flash-lite`. `CLAUDE.md`'s stack table still says "Gemini 2.0 Flash by default". Nothing fails, but the document and the running system disagree, and a mentor reading the stack table during a walkthrough would be told the wrong thing. Worth deciding whether to update the doc or pin the model back.
+
+**Answered 2026-09-08 — the doc was wrong, and there was a third value nobody had noticed.** Pinning back to Gemini 2.0 Flash was never an option: Google withdrew it and it answers 404 (T-51). `gemini-3.5-flash-lite` was chosen deliberately because it was the only model that completed 8 of 8 calls without refusing on the free tier's rate limit (T-55). So the stack table was simply out of date, and now names the real models with a pointer to why.
+
+**The real find underneath it:** there were *three* values in play, not two. `.env` said `gemini-3.5-flash-lite`, but `config.py`'s fallback default said **`gemini-3.8-flash`** — a different model again. That default is what runs whenever `.env` is missing that one line, which is exactly what happens on a fresh clone before anyone fills in their own `.env`. So a new machine would have silently run a slower model that was never chosen and never rate-limit tested, and nothing would have said so. `config.py` now matches `.env` and `.env.example`, with the reason written next to it.
+
+**The habit worth keeping:** a setting with a default in code and a value in `.env` is two sources of truth. When they drift, the one that wins is whichever the machine happens to have — and it fails silently, on someone else's laptop, not yours.
+
+**T-70 - Streamlit's `AppTest` does not put `backend/` on the import path.** Driving `mcp_server/chat_interface.py` through `AppTest` dies with `ModuleNotFoundError: No module named 'app'` unless the runner does `sys.path.insert(0, os.getcwd())` or sets `PYTHONPATH`. `streamlit run` sets this up on its own, so the app is fine; only the test driver needs the help. Anyone rerunning that end-to-end check will hit this first.
+
+**T-71 - The Windows console is cp1252 and mangles the app's own output.** Printing the briefing narrative or the Streamlit title through a plain PowerShell pipe raises `UnicodeEncodeError` on the rupee sign and the bank emoji, and a pretty-printer can make correct em dashes *look* like mojibake in the terminal. The data is clean UTF-8; the console is the problem. Set `PYTHONIOENCODING=utf-8` before believing any encoding bug seen at the terminal. This cost a false alarm on 2026-09-08.
+
 ### From planning the domain rules (2026-09-06)
 
 **T-32 · Phase 5 reads applicant facts that no table stores.** Employment length and existing loan payments. Raised as D-16.

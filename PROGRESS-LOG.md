@@ -4,6 +4,26 @@ Newest entries at the top. Short on purpose.
 
 ---
 
+## 2026-09-08 — Answering T-69, and the third model nobody had noticed
+
+**Asked for:** the verification session came back with four results and one open question — the running model is `gemini-3.5-flash-lite` but `CLAUDE.md` still advertised Gemini 2.0 Flash. Update the doc, or pin the model back?
+**Built:** no new feature. The doc was simply out of date, and pinning back was never an option: Google withdrew Gemini 2.0 Flash and it answers 404 (T-51). `gemini-3.5-flash-lite` was picked deliberately as the only model that survived the free tier's rate limit without refusing (T-55). The stack table now names the real models and says why.
+**Found:** the interesting part was underneath the question. There were **three** model values, not two. `.env` and `.env.example` both said `gemini-3.5-flash-lite`, but `config.py`'s fallback default said `gemini-3.8-flash` — a different model again. That default is what runs whenever `.env` is missing that line, which is exactly the state of a fresh clone before anyone fills in their own `.env`. So a new machine would have quietly run a slower model nobody chose and nobody rate-limit tested, and nothing on screen would have said so. All three now agree.
+**Realised:** a setting that has a default in code and a value in `.env` is two sources of truth. When they drift, the winner is whichever the machine happens to have — and it fails silently, on someone else's laptop rather than yours. Worth checking the other paired settings the same way sometime.
+**Next:** one gap left in the whole project — nobody has looked at the briefing card or the Phase 4 chat screen in a real browser. Two sessions have tried and both lost their browser tooling.
+
+---
+
+## 2026-09-08 — Session: Verifying the unattended run
+
+**Asked for:** Four checks handed over from the long build session — is Phase 2 really passing, do the two never-seen screens look right, regenerate the missing Phase 1 and 2 result files, and is Ollama worth installing.
+**Built:** Nothing new. Ran Phase 2 three times (22/22 each), Phase 1 once (27/27), wrote `results/phase1-results.xml` and `results/phase2-results.xml`, and drove the Phase 4 Streamlit chat end to end with Streamlit's own AppTest.
+**Found:** Yesterday's 9 failures were purely the exhausted daily Gemini quota — no code was ever broken. The manager's briefing endpoint returns real numbers and the React card reads exactly the fields it sends. The Streamlit chat shows its session ID, four quick-action buttons, and a clicked button really does come back with an AI answer. Also spotted that the model in use is gemini-3.5-flash-lite while CLAUDE.md still says Gemini 2.0 Flash (T-69).
+**Realised:** A terminal can invent a bug that isn't there. Correct em dashes looked like mojibake purely because the Windows console is cp1252 (T-71). Checked the raw bytes before reporting it as broken, which is the right order.
+**Next:** Two things still need Rohit's eyes in a real browser — the briefing card's layout and the Streamlit page — because this session had no browser tooling. Then decide on T-69 and on Ollama.
+
+---
+
 ## What I've read so far
 
 - [x] `01-POC-BLUEPRINT.md` — Parts 1 to 6, the whole Phase 1 contract

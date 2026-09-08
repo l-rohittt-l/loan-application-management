@@ -14,7 +14,7 @@ Rohit Sawant is building it. He has three years of Java and is new to Python. He
 | Database | SQLite |
 | Front-end | React 18 + Vite + Axios (required) |
 | Second front-end | Streamlit |
-| AI model | Gemini 2.0 Flash by default, Ollama as fallback (from Phase 2) |
+| AI model | `gemini-3.5-flash-lite` for chat, `gemini-embedding-001` for embeddings; Ollama as fallback (from Phase 2). The trainer specified Gemini 2.0 Flash, but Google withdrew it — see T-51 and T-55. |
 | Vector DB | ChromaDB |
 | Testing | pytest |
 
