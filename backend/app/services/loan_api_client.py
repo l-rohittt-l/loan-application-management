@@ -27,6 +27,8 @@ and cannot go stale.
 from __future__ import annotations
 
 import os
+from contextlib import contextmanager
+from contextvars import ContextVar
 
 import requests
 import structlog
@@ -64,16 +66,59 @@ def base_url() -> str:
 API_BASE_URL = base_url()
 
 
+# Who the AI is currently acting for. Set for the length of one chat request
+# by `acting_as()` below, and read by every call this module makes.
+#
+# A ContextVar rather than a global, because a global would be shared by every
+# request the server is handling at once: two people chatting at the same
+# moment would overwrite each other's identity, and one could be served the
+# other's data. A ContextVar is private to the task handling one request.
+_acting_for: ContextVar[tuple[str, str] | None] = ContextVar("_acting_for", default=None)
+
+
+@contextmanager
+def acting_as(email: str, role: str):
+    """
+    Make every API call inside this block happen **as that person**.
+
+        with acting_as(user.email, user.role.value):
+            answer = run_agent(question, agent)
+
+    This is the whole security model for the AI layers, and it is deliberately
+    not a new one. Phase 1's endpoints are already owner-scoped and
+    role-checked, and those checks were tested twenty ways. Calling them as
+    the person who actually asked means the AI inherits every one of those
+    rules for free: a customer's token cannot fetch another customer's
+    application, because the API itself answers 403 — no AI-specific
+    permission logic to get wrong.
+    """
+    token = _acting_for.set((email, role))
+    try:
+        yield
+    finally:
+        _acting_for.reset(token)
+
+
 def service_token(role: str = "branch_manager") -> str:
     """
     A signed-in identity for the AI layers to call the API as.
 
-    Every Phase 1 endpoint is owner-scoped and role-checked, so the agent has to
-    be somebody — it cannot call anonymously. It acts as a branch manager
-    because that role can read everything and perform every status change, which
-    is the widest the API itself allows; the API's own permission checks still
-    apply on every single call.
+    Every Phase 1 endpoint is owner-scoped and role-checked, so the agent has
+    to be somebody — it cannot call anonymously.
+
+    **Inside `acting_as()` it becomes that person**, which is what keeps a
+    customer's chat inside a customer's own data.
+
+    Outside it — a developer at a Python prompt, the Phase 5 CLI, a test — it
+    falls back to the branch-manager service identity, which can read
+    everything. That fallback is the reason `acting_as()` exists: without it,
+    wiring this agent into the customer-facing chat would have handed every
+    customer a manager's view of the bank (T-75).
     """
+    current = _acting_for.get()
+    if current is not None:
+        email, acting_role = current
+        return create_access_token(email=email, role=acting_role)
     return create_access_token(email=settings.agent_service_email, role=role)
 
 

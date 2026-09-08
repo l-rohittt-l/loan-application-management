@@ -986,6 +986,52 @@ Settled as D-13 on 2026-09-05, built after Phase 5 cleared. Not a trainer requir
 
 ---
 
+# PIECE 22 — One assistant in React that gets smarter, with role-gated tools
+
+Decided by Rohit on 2026-09-08, and he was right to push back.
+
+**What was wrong.** Phases 3, 4 and 5 were built as separate things reachable only from a Python prompt or their own Streamlit page. The React Assistant — the screen a customer actually sees, and the one in the demo — still only had Phase 2's brain. So the smartest parts of the product were invisible in the product. Rohit's instinct was that each phase should build *on top of* the Phase 2 chatbot in the same window, and the trainer's own folder layout works against that by giving each phase its own screen. Three chat screens that each know different things is a strange thing to show an Account Delivery Head.
+
+**The endpoint was already designed for this.** `app/routers/chat.py` says so in its own docstring: one chat door, each phase replaces the brain behind it, the `mode` field says which brain answered. The design was right; the wiring just stopped at Phase 2.
+
+### The safety problem this exposes, and it is the important part
+
+`loan_api_client.service_token()` currently mints a **branch manager** token for every AI call, whatever role the person asking actually has. That is fine while the agent is only reachable from a developer's terminal. Wire it into the customer-facing chat unchanged and **a customer asking "show me application 5" gets someone else's loan.**
+
+So the first thing built is not a feature, it is the gate.
+
+### Who gets what
+
+| | Manual (Phase 2) | Read own applications | Read all applications | Change data (Phase 4) | Underwriting review (Phase 5) |
+|---|---|---|---|---|---|
+| **Customer** | yes | yes | **no** | **no** | **no** |
+| **Loan officer** | yes | yes | yes | yes, except disburse | yes |
+| **Branch manager** | yes | yes | yes | yes, including disburse | yes |
+
+The officer line is my call, as Rohit asked: officers get everything except paying money out, which mirrors exactly what the Phase 1 screens already allow them to do (D-06). Nothing in the chat lets anyone do something the normal screens would refuse — the chat is a different door to the same building, not a wider one.
+
+### How the gate works
+
+`service_token()` gains a caller argument. Instead of always being a manager, the agent calls the Phase 1 API **as the person who asked the question**. Then every owner-scoped check the API already has — the ones Phase 1 was tested on — applies to the AI exactly as it applies to the browser. A customer's token cannot fetch another customer's application, because the API already refuses that with a 403.
+
+This is deliberately *not* a new permission system. It reuses the one that already exists and is already tested, which is the only kind worth trusting.
+
+### The build order
+
+1. **The gate.** `service_token(email, role)` acts as the caller. Tests that a customer's chat cannot reach another customer's data — the security test comes before the feature.
+2. **Phase 3 into the chat.** `/api/v1/chat` routes to the agent instead of the RAG chain. Policy questions still reach the manual, because `search_loan_policy` is one of the agent's five tools. `mode` becomes `"agent"`, and the reply carries which tools ran, so the screen can show it.
+3. **The screen.** The Assistant page shows the tools used per answer, the way the Phase 4 chat already does. Sources still show for manual answers.
+4. **Phase 4 into the chat, staff only.** The action tools appear only for staff. A destructive instruction restates what it will do and asks first, matching the confirmation dialogs Piece 19 and the detail page already use.
+5. **Phase 5 into the chat.** "Assess application 7" runs the four-agent review and shows the verdict with its reasoning.
+
+Each step keeps every existing test green, and each is committed separately.
+
+### Deliberately parked
+
+The trainer's `agent_app.py` (a separate Streamlit screen for Phase 3) is **not** being built. The React Assistant is the demo, and a fourth chat screen nobody opens is not worth the confusion. Recorded in `FUTURE-UPGRADES.md` in case a reviewer asks for it literally.
+
+---
+
 ## Done
 
 | # | Piece | Finished | Commit |

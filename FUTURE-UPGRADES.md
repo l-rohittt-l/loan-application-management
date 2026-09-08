@@ -46,6 +46,18 @@ Three ideas came up for our own unique feature. **The Manager's Morning Briefing
 
 ---
 
+## Parked while Piece 22 puts Phases 3-5 into the React chat
+
+Rohit's instruction on 2026-09-08: **get the trainer's Phase 3, 4 and 5 functions working in the React app first.** These three are the things set aside to do that, each worth picking up afterwards. Read this section before starting any of them.
+
+| Idea | What it is | Why it was parked | Size |
+|---|---|---|---|
+| **`agent_app.py`, the trainer's separate Phase 3 Streamlit screen** | The Phase 3 spec's folder listing includes a standalone Streamlit UI for the agent (line 68 of `phase3-context-engineering.md`, run command at line 562). It is **not** in that phase's submission checklist and **no test touches it**. | The React Assistant is the demo, and Piece 22 puts the same agent there. A fourth chat screen nobody opens adds confusion, not marks. Build it only if a reviewer asks for the folder layout literally. | Small |
+| **Merging the Phase 4 staff chat into the React assistant** | `mcp_server/chat_interface.py` stays a separate Streamlit page for now. Piece 22 gives React its own staff-only action tools, so the two overlap. | The Streamlit page is what Phase 4's 25 tests import (`build_executor`, `process_message`, `MCP_TOOLS`). Deleting or moving it would break a passing phase for no gain. Keep both until after the demo, then decide. | Medium |
+| **The Streamlit front-end catching up with React** | `frontend-streamlit/app.py` has Phase 2's assistant but will not gain Phases 3-5 during Piece 22. | React is the demo (T-09). Streamlit exists because Phase 2-4 tests check it, and those tests pass. Bringing it level is polish, not a requirement. | Medium |
+
+---
+
 ## Automatic provider switching, when one AI runs out
 
 Raised by Rohit on 2026-09-07, right after the Gemini free tier's **daily** 500-request cap ran out mid-run (T-66). Parked deliberately — he wants to discuss the options before anything is built.
