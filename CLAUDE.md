@@ -193,7 +193,12 @@ Nothing in that file gets built until the base requirement it sits on is done an
 
 - Commit after every completed piece from `BUILD-PLAN.md`. Not after every file, not once a week. Every piece.
 - Commit messages say what changed and why, in plain words.
-- **Every piece gets a version tag when it is pushed.** The middle number is the last completed phase, the last number is the piece: `v0.0.3` is Phase 1 in progress, piece 3. When Phase 1's tests pass it becomes `v0.1.0`. Phase 2 pieces are `v0.1.1`, `v0.1.2`… and Phase 2 done is `v0.2.0`. `v1.0.0` is demo-ready. Push tags with `git push --tags`.
+- **Every piece gets a version tag when it is pushed.** Push tags with `git push --tags`.
+- **How to pick the number, Rohit's rule from 2026-09-08.** Three digits, `vMAJOR.MINOR.PATCH`, and which one moves depends on how you feel about the change:
+  - **Last digit** — the embarrassing ones. A fix for something that should never have shipped, a change you would rather not have to mention. `v1.0.0` becomes `v1.0.1`.
+  - **Middle digit** — a normal update. A new feature, an ordinary piece of work. `v1.0.1` becomes `v1.1.0`.
+  - **First digit** — the ones you are proud of. Something significant that changes what the product is. `v1.1.0` becomes `v2.0.0`.
+- This replaced the old phase-and-piece scheme, which ran out of room once Phase 5 finished and took `v1.0.0`. Everything up to and including `v1.0.0` used the old scheme; everything after uses this one.
 - Never commit `.env`, database files, `chroma_db/`, `results/`, or `Chats/`. The `.gitignore` handles it; check `git status` before every commit anyway.
 - Work on `main`. One person, one branch, no ceremony.
 
