@@ -48,6 +48,13 @@ router = APIRouter()
 # grounded in the manual, so the screen can still show the extracts underneath.
 POLICY_TOOL = "search_loan_policy"
 
+# LangChain records a step called `_Exception` whenever the model wrote a
+# malformed step and had to be asked to correct itself. That is real and worth
+# logging, but it is not something the agent *did* — showing "_Exception" in a
+# customer's list of how their answer was worked out looks like a crash. It is
+# dropped from what the screen sees.
+INTERNAL_STEPS = {"_Exception"}
+
 # The agent, built once and reused. Building it sets up the model, the five
 # tools and the ReAct prompt — cheap, but not free, and it would otherwise
 # happen on every single message. Same idea as `get_chain()` in Phase 2.
@@ -74,8 +81,11 @@ def _tool_calls(intermediate_steps) -> list[ChatToolCall]:
     calls = []
     for step in intermediate_steps:
         action = step[0]
+        name = getattr(action, "tool", "unknown")
+        if name in INTERNAL_STEPS:
+            continue
         calls.append(ChatToolCall(
-            tool=getattr(action, "tool", "unknown"),
+            tool=name,
             tool_input=str(getattr(action, "tool_input", ""))[:200],
         ))
     return calls

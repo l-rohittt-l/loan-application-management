@@ -1,17 +1,22 @@
 // The assistant. One chat box for the whole product.
 //
 // This screen talks to POST /api/v1/chat and nothing else, and it will not need
-// rewriting as the later phases land. Today that address answers policy
-// questions from the user manual. In Phase 3 the same address gains the ability
-// to read live application data, in Phase 4 its tools move behind MCP, and in
-// Phase 5 it can run a full multi-agent review. The screen stays as it is; the
-// brain behind the door gets smarter.
+// rewriting as the later phases land. That address now runs the Phase 3 agent,
+// which picks its own tools: one reads the user manual, the others read live
+// application data. In Phase 4 the tools move behind MCP, and in Phase 5 it can
+// run a full multi-agent review. The screen stays as it is; the brain behind
+// the door gets smarter.
 //
-// Two deliberate choices worth explaining in a walkthrough:
+// Three deliberate choices worth explaining in a walkthrough:
 //
 //   * Every answer shows the manual extracts it came from. An assistant that
 //     cites its source can be checked; one that does not has to be trusted.
 //     For a bank that difference matters.
+//
+//   * Every answer also shows which tools the assistant used to get there, in
+//     the order it used them. That is the same reasoning trail the Phase 4
+//     Streamlit chat shows staff, and it turns "the AI said so" into something
+//     a person can follow step by step.
 //
 //   * The conversation lives in this component's memory only. It is never put
 //     in localStorage, because customer questions are customer data and
@@ -27,9 +32,21 @@ import Icon from "../components/ui/Icon";
 // What each brain is called on screen, so the routing is visible rather than magic.
 const MODES = {
   rag: { text: "Answered from the user manual", icon: "file" },
-  agent: { text: "Read live application data", icon: "activity" },
+  agent: { text: "Answered by the assistant", icon: "activity" },
   review: { text: "Multi-agent review", icon: "shield" },
   empty: { text: "", icon: "info" },
+};
+
+// The agent's tools, in words a customer understands. `get_application_details`
+// is a function name; "Looked up an application" is what actually happened.
+// Anything not listed here falls back to its raw name rather than being hidden,
+// so a tool added later still shows up instead of silently disappearing.
+const TOOLS = {
+  search_loan_policy: { text: "Read the user manual", icon: "file" },
+  get_application_details: { text: "Looked up an application", icon: "applications" },
+  list_applications: { text: "Searched the applications list", icon: "search" },
+  get_dashboard_summary: { text: "Read the dashboard figures", icon: "dashboard" },
+  get_applicant_details: { text: "Looked up an applicant", icon: "user" },
 };
 
 const SUGGESTIONS = [
@@ -39,18 +56,59 @@ const SUGGESTIONS = [
   "What happens if my application is rejected?",
 ];
 
-function Sources({ sources }) {
-  const [open, setOpen] = useState(false);
-  if (!sources?.length) return null;
+// The "check my work" strip under every answer: how the assistant worked the
+// answer out, and which manual extracts it quoted. Both live in one component
+// so the two toggles sit on a single row and the opened panels stack neatly
+// beneath it.
+//
+// They are deliberately not two separate stacked controls. Both toggles are
+// borderless grey text, and one directly above the other read as a paragraph
+// rather than as buttons — the exact mistake T-73 caught on the briefing card.
+// A shared row with a divider makes them legible as a pair of controls.
+function Evidence({ tools, sources }) {
+  const [openTools, setOpenTools] = useState(false);
+  const [openSources, setOpenSources] = useState(false);
+
+  const hasTools = tools?.length > 0;
+  const hasSources = sources?.length > 0;
+  if (!hasTools && !hasSources) return null;
 
   return (
-    <div className="sources">
-      <button type="button" className="sources-toggle" onClick={() => setOpen((v) => !v)}>
-        <Icon name={open ? "chevronDown" : "chevronLeft"} size={13} />
-        {open ? "Hide" : "Show"} the {sources.length} manual extract
-        {sources.length === 1 ? "" : "s"} this came from
-      </button>
-      {open && (
+    <div className="evidence">
+      <div className="evidence-row">
+        {hasTools && (
+          <button type="button" className="sources-toggle"
+                  aria-expanded={openTools}
+                  onClick={() => setOpenTools((v) => !v)}>
+            <Icon name={openTools ? "chevronDown" : "chevronLeft"} size={13} />
+            {openTools ? "Hide" : "Show"} how this was worked out ({tools.length} step
+            {tools.length === 1 ? "" : "s"})
+          </button>
+        )}
+        {hasSources && (
+          <button type="button" className="sources-toggle"
+                  aria-expanded={openSources}
+                  onClick={() => setOpenSources((v) => !v)}>
+            <Icon name={openSources ? "chevronDown" : "chevronLeft"} size={13} />
+            {openSources ? "Hide" : "Show"} the {sources.length} manual extract
+            {sources.length === 1 ? "" : "s"} this came from
+          </button>
+        )}
+      </div>
+
+      {openTools && hasTools && (
+        <ol className="tools-list">
+          {tools.map((t, i) => (
+            <li key={i}>
+              <Icon name={TOOLS[t.tool]?.icon || "activity"} size={13} />
+              <span className="tools-name">{TOOLS[t.tool]?.text || t.tool}</span>
+              {t.tool_input && <span className="tools-input">{t.tool_input}</span>}
+            </li>
+          ))}
+        </ol>
+      )}
+
+      {openSources && hasSources && (
         <ol className="sources-list">
           {sources.map((s, i) => (
             <li key={s.chunk_id || i}>
@@ -93,6 +151,7 @@ export default function Assistant() {
         text: res.data.answer,
         mode: res.data.mode,
         sources: res.data.sources,
+        tools: res.data.tools_used,
         ms: res.data.duration_ms,
       }]);
     } catch (err) {
@@ -111,8 +170,8 @@ export default function Assistant() {
         <div>
           <h1>Assistant</h1>
           <p className="sub">
-            Ask about loan policy, eligibility, documents or fees. Every answer
-            comes from the bank's user manual, and shows you where it came from.
+            Ask about loan policy, eligibility, documents or fees, or about your
+            own applications. Every answer shows you how it was worked out.
           </p>
         </div>
         {messages.length > 0 && (
@@ -133,8 +192,9 @@ export default function Assistant() {
                 Hello{user?.name ? `, ${user.name.split(" ")[0]}` : ""}. What would you like to know?
               </p>
               <p className="empty-text">
-                I answer only from the bank's user manual. If something is not in
-                there, I will say so rather than guess.
+                I answer from the bank's user manual and from the loan system
+                itself. I only ever show you what you are allowed to see, and if
+                I do not know something I will say so rather than guess.
               </p>
               <div className="chips" style={{ justifyContent: "center", marginTop: "1.1rem" }}>
                 {SUGGESTIONS.map((s) => (
@@ -151,7 +211,7 @@ export default function Assistant() {
               <div className="bubble-text">{m.text}</div>
               {m.who === "assistant" && (
                 <>
-                  <Sources sources={m.sources} />
+                  <Evidence tools={m.tools} sources={m.sources} />
                   <div className="bubble-meta">
                     <Icon name={MODES[m.mode]?.icon || "info"} size={12} />
                     <span>{MODES[m.mode]?.text || m.mode}</span>

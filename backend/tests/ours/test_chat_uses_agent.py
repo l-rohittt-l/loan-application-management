@@ -135,3 +135,31 @@ def test_a_broken_agent_falls_back_to_the_manual(client, auth_token, monkeypatch
     assert body["mode"] == "rag"
     assert body["answer"] == "From the manual."
     assert body["tools_used"] == []
+
+
+def test_langchains_retry_marker_is_not_shown_as_a_tool(client, auth_token, monkeypatch):
+    """
+    When the model writes a malformed step, LangChain records a step called
+    `_Exception` and asks it to try again. That is a real thing that happened,
+    but it is not something the assistant *did* — showing it in a customer's
+    "how this was worked out" list reads as a crash. Seen live on a customer's
+    refused request, so it is not hypothetical (T-77).
+    """
+    import agent.agent as agent_module
+
+    def run(question, executor=None):
+        return {
+            "output": "You can only view your own applications.",
+            "intermediate_steps": [
+                (_FakeAction("get_application_details", "3"), "403"),
+                (_FakeAction("_Exception", "Invalid Format"), "retry"),
+            ],
+        }
+
+    monkeypatch.setattr(agent_module, "run_agent", run)
+    monkeypatch.setattr(chat_router, "get_agent", lambda: None)
+    monkeypatch.setattr(chat_router, "_policy_sources", lambda calls: [])
+
+    body = _ask(client, auth_token, "Show me application 3").json()
+
+    assert [t["tool"] for t in body["tools_used"]] == ["get_application_details"]

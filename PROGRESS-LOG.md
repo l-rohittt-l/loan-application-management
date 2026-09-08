@@ -4,6 +4,16 @@ Newest entries at the top. Short on purpose.
 
 ---
 
+## 2026-09-08 — Piece 22 step 3: the assistant now shows its working
+
+**Asked for:** put the tools the assistant used on the Assistant screen, the way the Phase 4 Streamlit chat already does for staff.
+**Built:** a "Show how this was worked out" control under every answer. Opening it lists the steps the assistant took, in order, with the value it passed in — so "Looked up an application, 3" rather than `get_application_details`. Each tool got a plain-English name and an icon; anything not in that list falls back to its raw name rather than vanishing, so a tool added later still shows. Also fixed the page copy, which still promised answers came only from the manual, and the `agent` mode label, which claimed "Read live application data" even when the assistant had only read the manual.
+**Found:** two things worth keeping. The reasoning list was showing `_Exception`, which is LangChain's private marker for "the model wrote a malformed step and I asked it to try again" — real, but not something the assistant *did*, and it reads as a crash to a customer. Filtered out at the backend with a test (T-77). And the new toggle would have sat directly above the existing sources toggle: two identical borderless grey lines, one under the other, which is precisely the T-73 mistake again. They are now one row with a divider, so they read as a pair of controls.
+**Realised:** T-73 said a borderless control needs neighbours to be legible. The interesting bit is that the fix for a lone ghost button is not always to give it a border — here it was to give it a neighbour, which is what the trap actually said.
+**Next:** step 4 — Phase 4's action tools in the chat, staff only, with a confirmation before anything changes.
+
+---
+
 ## 2026-09-08 — Piece 22 step 2: the chat box got the Phase 3 brain
 
 **Asked for:** route `/api/v1/chat` to the Phase 3 agent instead of the Phase 2 manual chain, wrapped in the `acting_as()` gate built in step 1.

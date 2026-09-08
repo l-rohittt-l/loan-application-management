@@ -275,6 +275,16 @@ A suffixed name fails both instantly. **Fix: Gemini, the default, uses the bare 
 
 # Settled
 
+### 2026-09-08 · T-77 — LangChain's `_Exception` retry marker looked like a crash in the customer-facing reasoning trail
+
+**What's wrong:** the agent's `intermediate_steps` include a step named `_Exception` whenever the model wrote a malformed step and had to be asked to correct itself. Seen live on a customer's refused request: the "how this was worked out" list read `get_application_details`, then `_Exception`. That is a real thing that happened and is worth logging, but it is not an action the assistant took, and a customer reading `_Exception` under their answer sees a crash.
+
+**Fix:** `INTERNAL_STEPS` in `app/routers/chat.py` drops it from what the screen receives. It still appears in the server log, where it belongs. Guarded by a test.
+
+**The lesson:** a framework's internal bookkeeping leaks into anything that renders its raw output. Anything shown to a customer needs a whitelist or a filter, not a straight pass-through of a library's own data structure.
+
+---
+
 ### 2026-09-08 · T-76 — A server left running from an earlier session answers with the old code
 
 **What's wrong:** the first live check of the new chat endpoint came back with `mode="rag"` and no `tools_used` field at all — exactly what a broken change looks like. Nothing was broken. A uvicorn from a previous session was still holding port 8000, the new one failed to bind, and every request went to the old code. The bind error only appeared in the log file, not on screen, because the new server was started in the background.

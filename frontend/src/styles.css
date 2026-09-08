@@ -453,9 +453,44 @@ th.sorted { color: var(--ink-900); }
   margin-top: 0.55rem; font-size: 0.74rem; color: var(--ink-500);
 }
 
+/* The two "check my work" controls — how it was worked out, and the manual
+   extracts — sit on one row with a divider between them. Stacked, they were
+   two identical grey lines that read as text rather than as buttons, which is
+   the exact mistake T-73 caught on the briefing card. Side by side with a
+   separator they are visibly a pair of controls. Each one still opens its own
+   panel below the row. */
+.evidence { margin-top: 0.6rem; }
+.evidence-row {
+  display: flex; align-items: center; flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+}
+/* The divider between the two toggles, drawn only when both are present. */
+.evidence-row .sources-toggle + .sources-toggle {
+  padding-left: 0.75rem; border-left: 1px solid var(--line);
+}
+
+/* How the assistant worked an answer out: which tools it used, in order.
+   Same collapsed-by-default treatment as the sources below, and the same
+   toggle style, because they are the same kind of thing — evidence you can
+   open if you want it, out of the way if you do not. */
+.tools-list {
+  list-style: none; margin: 0.55rem 0 0; padding: 0;
+  font-size: 0.78rem; color: var(--ink-700);
+}
+.tools-list li {
+  display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;
+  padding: 0.28rem 0;
+}
+.tools-name { font-weight: 550; }
+.tools-input {
+  color: var(--ink-500); font-size: 0.74rem;
+  overflow-wrap: anywhere;
+}
+.tools-input::before { content: "\201C"; }
+.tools-input::after  { content: "\201D"; }
+
 /* The extracts an answer was built from. Collapsed by default: available for
    checking, not in the way of reading. */
-.sources { margin-top: 0.6rem; }
 .sources-toggle {
   display: inline-flex; align-items: center; gap: 0.3rem;
   background: none; border: 0; padding: 0; cursor: pointer;
