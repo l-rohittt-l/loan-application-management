@@ -10,8 +10,8 @@ of question it just received.
 So the front-end talks to `POST /api/v1/chat` and always will. What sits behind
 it grows:
 
-    Phase 2 (now)  the RAG chain, answering policy questions from the manual
-    Phase 3        a tool-using agent that can also read live application data
+    Phase 2        the RAG chain, answering policy questions from the manual
+    Phase 3 (now)  a tool-using agent that can also read live application data
     Phase 4        the same agent, with its tools served over MCP
     Phase 5        the multi-agent reviewer for "assess application 7"
 
@@ -36,12 +36,102 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.user import User
-from app.schemas.chat import ChatRequest, ChatResponse, ChatSource
+from app.schemas.chat import ChatRequest, ChatResponse, ChatSource, ChatToolCall
 from app.services import activity_service
+from app.services.loan_api_client import acting_as
 
 logger = structlog.get_logger()
 
 router = APIRouter()
+
+# The tool that reads the user manual. When the agent used it, the answer is
+# grounded in the manual, so the screen can still show the extracts underneath.
+POLICY_TOOL = "search_loan_policy"
+
+# The agent, built once and reused. Building it sets up the model, the five
+# tools and the ReAct prompt — cheap, but not free, and it would otherwise
+# happen on every single message. Same idea as `get_chain()` in Phase 2.
+_agent = None
+
+
+def get_agent():
+    """The shared agent executor, built on first use."""
+    global _agent
+    if _agent is None:
+        from agent.agent import build_agent
+
+        _agent = build_agent()
+    return _agent
+
+
+def _tool_calls(intermediate_steps) -> list[ChatToolCall]:
+    """
+    Turn the agent's own record of what it did into something the screen can
+    show. Each step is a pair: the action it took, and what came back. We only
+    want the action's name and input — the observation can be long, and it is
+    already folded into the answer.
+    """
+    calls = []
+    for step in intermediate_steps:
+        action = step[0]
+        calls.append(ChatToolCall(
+            tool=getattr(action, "tool", "unknown"),
+            tool_input=str(getattr(action, "tool_input", ""))[:200],
+        ))
+    return calls
+
+
+def _policy_sources(calls: list[ChatToolCall]) -> list[ChatSource]:
+    """
+    The manual extracts behind an agent answer.
+
+    The agent's policy tool returns only a sentence, not the extracts it came
+    from, so we ask the retriever again for the same query the agent used. That
+    is one extra vector-store lookup and no extra AI call, and it keeps the
+    "check the AI" panel working now that the agent answers policy questions
+    rather than the chain answering them directly.
+    """
+    queries = [c.tool_input for c in calls if c.tool == POLICY_TOOL and c.tool_input]
+    if not queries:
+        return []
+
+    try:
+        from rag.rag_chain import get_chain
+
+        _chain, retriever = get_chain()
+        documents = retriever.invoke(queries[0])
+    except Exception:                                          # noqa: BLE001
+        # Sources are a nice-to-have. Never fail an answered question over them.
+        logger.warning("chat_sources_unavailable", operation="chat_sources")
+        return []
+
+    return [
+        ChatSource(
+            chunk_id=d.metadata.get("chunk_id"),
+            source=d.metadata.get("source"),
+            excerpt=d.page_content.strip()[:600],
+        )
+        for d in documents
+    ]
+
+
+def _answer_with_rag(question: str) -> tuple[str, list[ChatSource]]:
+    """
+    Phase 2's brain, kept as the fallback.
+
+    If the agent cannot run at all — the model is rate-limited, the ReAct loop
+    gives up — the person still gets a real answer from the manual rather than
+    an error. The reply says `mode="rag"` when this happens, so the screen tells
+    the truth about which brain answered.
+    """
+    from rag.rag_chain import answer_question, get_chain
+
+    chain, retriever = get_chain()
+    result = answer_question(question, chain, retriever)
+    return result["answer"], [
+        ChatSource(chunk_id=s["chunk_id"], source=s["source"], excerpt=s["excerpt"][:600])
+        for s in result["sources"]
+    ]
 
 
 @router.post("", response_model=ChatResponse)
@@ -54,9 +144,11 @@ def chat(
     """
     Ask the assistant something.
 
-    Anyone signed in may ask. What comes back is limited by who is asking:
-    from Phase 3 onwards the tools that read live data check the caller's role,
-    so a customer asking "show me application 5" only ever sees their own.
+    Anyone signed in may ask. What comes back is limited by who is asking: the
+    agent's tools call the Phase 1 API inside `acting_as()`, so they run as the
+    person who typed the question. A customer asking "show me application 5"
+    gets a 403 from the API itself unless it is their own — the same rule the
+    browser already obeys, not a second one written for the AI (T-75).
     """
     started = time.perf_counter()
     question = body.message.strip()
@@ -69,12 +161,31 @@ def chat(
             duration_ms=0.0,
         )
 
-    # Phase 2's brain. Phase 3 swaps this for the agent, which will still call
-    # the same RAG chain underneath for policy questions.
-    from rag.rag_chain import answer_question, get_chain
+    mode = "agent"
+    tools_used: list[ChatToolCall] = []
 
-    chain, retriever = get_chain()
-    result = answer_question(question, chain, retriever)
+    try:
+        from agent.agent import run_agent
+
+        # Everything inside this block calls the loan API as the person asking.
+        with acting_as(user.email, user.role.value):
+            result = run_agent(question, get_agent())
+
+        answer = result.get("output") or ""
+        tools_used = _tool_calls(result.get("intermediate_steps", []))
+        sources = _policy_sources(tools_used)
+
+        if not answer.strip():
+            # The agent ran but produced nothing useful. Fall back rather than
+            # showing a blank bubble.
+            raise ValueError("agent returned an empty answer")
+
+    except Exception as exc:                                   # noqa: BLE001
+        logger.warning("chat_agent_failed", operation="chat_agent_failed",
+                       question=question[:200], error=str(exc)[:300])
+        mode = "rag"
+        tools_used = []
+        answer, sources = _answer_with_rag(question)
 
     duration_ms = round((time.perf_counter() - started) * 1000, 2)
 
@@ -82,26 +193,23 @@ def chat(
         db, action="chat_message",
         actor_id=user.email, actor_role=user.role.value,
         entity_type="chat",
-        details={"question": question[:200], "mode": "rag",
-                 "sources": len(result["sources"])},
+        details={"question": question[:200], "mode": mode,
+                 "sources": len(sources),
+                 "tools": [c.tool for c in tools_used]},
         **activity_service.request_meta(request),
     )
     db.commit()
 
     logger.info("chat_answered", operation="chat_answered",
-                question=question[:200], mode="rag",
-                sources=len(result["sources"]), duration_ms=duration_ms)
+                question=question[:200], mode=mode,
+                sources=len(sources),
+                tools_used=[c.tool for c in tools_used],
+                duration_ms=duration_ms)
 
     return ChatResponse(
-        answer=result["answer"],
-        mode="rag",
-        sources=[
-            ChatSource(
-                chunk_id=s["chunk_id"],
-                source=s["source"],
-                excerpt=s["excerpt"][:600],
-            )
-            for s in result["sources"]
-        ],
+        answer=answer,
+        mode=mode,
+        sources=sources,
         duration_ms=duration_ms,
+        tools_used=tools_used,
     )

@@ -4,6 +4,14 @@ Newest entries at the top. Short on purpose.
 
 ---
 
+## 2026-09-08 — Piece 22 step 2: the chat box got the Phase 3 brain
+
+**Asked for:** route `/api/v1/chat` to the Phase 3 agent instead of the Phase 2 manual chain, wrapped in the `acting_as()` gate built in step 1.
+**Built:** the router now builds the agent once and reuses it, calls it inside `acting_as(user.email, user.role)`, and returns which tools ran in a new `tools_used` field. Sources still work: the agent's policy tool only returns a sentence, so the router re-asks the retriever for the same query the agent used and gets the extracts back. If the agent falls over — rate limit, or its loop gives up — it falls back to the manual chain and honestly says `mode="rag"`. Six new tests in `tests/ours/test_chat_uses_agent.py` use a stand-in agent, so they cost no AI quota.
+**Found:** proved it in a real browser-equivalent call, and this is the bit worth seeing. Priya the customer asks "show me application 3" and gets *"you can only view your own loan applications"*. Anita the manager types the exact same words into the exact same box and gets the loan. Nothing in the AI decides that — the Phase 1 API refuses Priya with a 403 and the assistant reports it. Also: a stale server was still running on port 8000 from an earlier session, which made the first live check look like a failure when it was just the old code answering (T-76).
+**Realised:** the fallback matters more than it looks. Google's daily quota can empty mid-demo, and without it the chat would go from clever to broken. With it, it goes from clever to Phase 2, which is still a working product.
+**Next:** step 3 — show the tools used on the Assistant screen in React.
+
 ## 2026-09-08 — The Phase 4 chat was broken for the only person who ran it
 
 **Asked for:** Rohit tried the documented command for the Phase 4 staff chat and it did not work. Find out why.

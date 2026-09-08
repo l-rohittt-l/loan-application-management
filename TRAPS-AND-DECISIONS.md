@@ -275,6 +275,28 @@ A suffixed name fails both instantly. **Fix: Gemini, the default, uses the bare 
 
 # Settled
 
+### 2026-09-08 · T-76 — A server left running from an earlier session answers with the old code
+
+**What's wrong:** the first live check of the new chat endpoint came back with `mode="rag"` and no `tools_used` field at all — exactly what a broken change looks like. Nothing was broken. A uvicorn from a previous session was still holding port 8000, the new one failed to bind, and every request went to the old code. The bind error only appeared in the log file, not on screen, because the new server was started in the background.
+
+**Fix while testing:** run the check on a free port, and point `API_BASE_URL` at that same port so the agent's tools loop back to the server under test rather than the stale one.
+
+**The lesson:** a background server that fails to start still leaves you with *a* server answering. Before believing a live check, confirm the thing answering is the thing you just built — a new field missing from the response is the cheapest tell.
+
+---
+
+### 2026-09-08 · T-75 — Wiring the agent into the customer chat would have shown one customer another's loan
+
+**What's wrong:** `loan_api_client.service_token()` minted a **branch manager** token for every AI call, whoever was asking. Harmless while Phase 3 was only reachable from a developer's terminal. The moment `/api/v1/chat` routed to the agent, a customer typing "show me application 5" would have been answered with a manager's view of the bank — someone else's loan, their income, their credit score.
+
+**Fix:** `acting_as(email, role)`, a context manager in `app/services/loan_api_client.py`. Every API call inside the block is made **as the person who asked**, so Phase 1's existing owner-scoping does all the work. Deliberately not a new permission system — it reuses the one that already exists and was already tested twenty ways. It is a `ContextVar` rather than a global, because a global would be shared across every request the server handles at once, and two people chatting simultaneously could be served each other's data.
+
+Guarded by six tests in `tests/ours/test_agent_acts_as_caller.py`, and proved live: Priya (customer) and Anita (manager) ask the identical question in the identical box, and Priya is refused.
+
+**The lesson:** a component's security depends on who can reach it, not on what it does. This code was safe for months and became a data breach the day a screen was pointed at it, with no change to the code itself.
+
+---
+
 ### 2026-09-08 · T-74 — The Phase 4 chat crashed for the person running it, while every check said it worked
 
 **What's wrong:** running the documented command

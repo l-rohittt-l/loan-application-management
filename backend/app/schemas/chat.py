@@ -27,10 +27,20 @@ class ChatSource(BaseModel):
     excerpt: str
 
 
+class ChatToolCall(BaseModel):
+    """One tool the agent decided to use while working out its answer."""
+    tool: str = Field(..., description="The tool's name, e.g. search_loan_policy")
+    tool_input: str = Field("", description="What the agent passed to it, shortened")
+
+
 class ChatResponse(BaseModel):
     answer: str
-    # Which brain answered: "rag" from the manual, "empty" for a blank message.
-    # Phase 3 adds "agent", Phase 5 adds "review".
+    # Which brain answered: "rag" from the manual, "empty" for a blank message,
+    # "agent" for the Phase 3 tool-using agent. Phase 5 adds "review".
     mode: str
     sources: list[ChatSource] = []
     duration_ms: float
+    # Which tools ran, in the order the agent called them. Empty when no tool
+    # was needed, or when the answer came straight from the manual chain.
+    # Defaulted so nothing that already reads this response has to change.
+    tools_used: list[ChatToolCall] = []
