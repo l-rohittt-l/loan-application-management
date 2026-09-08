@@ -25,18 +25,36 @@ so wrapping them again here with LangChain's `@tool` costs nothing extra.
 
 from __future__ import annotations
 
+import sys
 import time
 import uuid
+from pathlib import Path
 
-import structlog
-from langchain_classic.agents import AgentExecutor, create_react_agent
-from langchain_core.prompts import PromptTemplate
-from langchain_core.tools import tool
+# `streamlit run mcp_server/chat_interface.py` puts THIS file's folder
+# (backend/mcp_server) first on Python's import path — not backend/. So
+# `import app` looks inside mcp_server/, finds no `app` package there, and
+# the page dies with "ModuleNotFoundError: No module named 'app'" the moment
+# a browser connects. The server still starts and still answers 200, because
+# that 200 is only the empty page shell; the script itself is not run until
+# someone opens it. That is why every check that imported this module from a
+# process already started in backend/ — pytest, Streamlit's AppTest — passed
+# while the actual command a person types failed (T-74).
+#
+# Adding backend/ to the path here fixes it wherever the file is launched
+# from, rather than relying on the person being in the right folder.
+_BACKEND = Path(__file__).resolve().parent.parent
+if str(_BACKEND) not in sys.path:
+    sys.path.insert(0, str(_BACKEND))
 
-from app.utils.logging_config import configure_logging
-from app.utils.otel_config import get_tracer, setup_telemetry
-from llm_provider import enable_langsmith, get_llm
-from mcp_server import mcp_app
+import structlog                                                      # noqa: E402
+from langchain_classic.agents import AgentExecutor, create_react_agent  # noqa: E402
+from langchain_core.prompts import PromptTemplate                     # noqa: E402
+from langchain_core.tools import tool                                 # noqa: E402
+
+from app.utils.logging_config import configure_logging               # noqa: E402
+from app.utils.otel_config import get_tracer, setup_telemetry        # noqa: E402
+from llm_provider import enable_langsmith, get_llm                   # noqa: E402
+from mcp_server import mcp_app                                       # noqa: E402
 
 logger = structlog.get_logger()
 

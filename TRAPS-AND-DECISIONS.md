@@ -275,6 +275,29 @@ A suffixed name fails both instantly. **Fix: Gemini, the default, uses the bare 
 
 # Settled
 
+### 2026-09-08 · T-74 — The Phase 4 chat crashed for the person running it, while every check said it worked
+
+**What's wrong:** running the documented command
+
+```powershell
+.\venv\Scripts\streamlit run mcp_server/chat_interface.py --server.port 8502
+```
+
+opened a page that immediately died with `ModuleNotFoundError: No module named 'app'`. Streamlit puts **the script's own folder** (`backend/mcp_server`) first on Python's import path — not `backend/`. So `from app.utils.logging_config import ...` looks inside `mcp_server/`, finds no `app` package, and the script dies the moment a browser connects.
+
+**Why every check missed it, which is the part worth remembering:**
+
+- **`pytest tests/phase4` passed all 25.** pytest starts in `backend/` with `pythonpath = .` (T-37), so `app` was already importable. It tested the code, not the command.
+- **Streamlit's own `AppTest` passed.** It runs inside a Python process that was itself started from `backend/`, so again `app` was already on the path.
+- **The server returned HTTP 200.** That 200 is only the empty page shell. Streamlit does not execute the script until a browser opens a session, so a healthy status code proved nothing at all.
+- **`streamlit run` printed "You can now view your Streamlit app"** and no error, because the crash happens per-session, in the browser, not at startup.
+
+Four independent green signals, and the thing was broken for the only person who actually typed the command.
+
+**Fix:** `chat_interface.py` now puts `backend/` on `sys.path` itself, from its own file location, so it works wherever it is launched from rather than depending on the person being in the right folder. Proved both ways: with the fix removed the import fails with exactly the reported error, and with it in place the same conditions import cleanly. Phase 4's 25 tests still pass.
+
+**The lesson, and it is the third time this project has learned a version of it:** *a test that imports your module is not a test that your launch command works.* T-72 was the same shape (every phase passed alone, `pytest tests/` did not run at all), and T-42 before that. **Run the command the person will type, in the state they will be in.**
+
 ### 2026-09-08 · T-73 — A ghost button alone on a card reads as plain text, not a control
 
 **What's wrong:** the Morning Briefing's "How this was worked out" control was a `Button` with `variant="ghost"`. Ghost styling is deliberately bare — `background: transparent; border-color: transparent; box-shadow: none` — and only appears on hover. That works in a toolbar, where the buttons beside it make it obviously pressable. This one sits **alone, under a divider**, with nothing next to it, so it rendered as a stray dark line of text. Nothing told a manager it could be pressed until the pointer happened to land on it — and the panel it opens is the whole trust story of the feature, the numbers behind every sentence the AI wrote.

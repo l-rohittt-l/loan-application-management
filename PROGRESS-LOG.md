@@ -4,6 +4,16 @@ Newest entries at the top. Short on purpose.
 
 ---
 
+## 2026-09-08 — The Phase 4 chat was broken for the only person who ran it
+
+**Asked for:** Rohit tried the documented command for the Phase 4 staff chat and it did not work. Find out why.
+**Built:** the fix, and it is a small one — `chat_interface.py` now adds `backend/` to Python's path itself, based on where the file sits, instead of depending on which folder the person happened to be in.
+**Found:** `streamlit run mcp_server/chat_interface.py` puts *the script's own folder* first on Python's import path, not `backend/`. So `import app` looked inside `mcp_server/`, found nothing, and the page died with `ModuleNotFoundError: No module named 'app'` the moment a browser opened it.
+**Realised:** the humbling part is how many green lights were showing while it was broken. Phase 4's 25 tests passed, because pytest starts in `backend/` and already had `app` importable. Streamlit's own AppTest passed, for the same reason. The server answered HTTP 200 — but that 200 is just the empty page shell, because Streamlit does not run the script until a browser connects. And `streamlit run` printed its usual "You can now view your Streamlit app" with no error, because the crash is per-session. Four independent checks, all green, all testing the code rather than the command. I told Rohit it worked. It did not. Proved the fix properly this time by reproducing Streamlit's exact import conditions, confirming it fails without the fix and passes with it (T-74).
+**Next:** the chat screen still wants a look in a browser — now that it will actually open.
+
+---
+
 ## 2026-09-08 — Rohit looked at the briefing, and looking found a bug
 
 **Asked for:** the backend started so Rohit could finally open the Morning Briefing in a browser — the last thing in the project nobody had actually seen.
