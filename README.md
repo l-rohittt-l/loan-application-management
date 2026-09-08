@@ -128,6 +128,12 @@ Run from `backend/`, with the backend server already running (Phases 3, 4 and 5 
 
 ```powershell
 cd backend
+.\venv\Scripts\python.exe -m pytest tests/ -v                # everything: 142 tests
+```
+
+Or one phase at a time:
+
+```powershell
 .\venv\Scripts\python.exe -m pytest tests/phase1 -v          # 27 runs (4 cases are parametrised)
 .\venv\Scripts\python.exe -m pytest tests/phase2 -v          # 22
 .\venv\Scripts\python.exe -m pytest tests/phase3 -v          # 23

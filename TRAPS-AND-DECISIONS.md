@@ -275,6 +275,26 @@ A suffixed name fails both instantly. **Fix: Gemini, the default, uses the bare 
 
 # Settled
 
+### 2026-09-08 · T-72 — `pytest tests/` failed to collect, even though every phase passed on its own
+
+**What's wrong:** every phase suite passed when run individually — `pytest tests/phase3`, `pytest tests/phase5`, and so on. But running **all of them together**, which is the first thing a reviewer would type, failed before a single test executed:
+
+```
+ERROR collecting tests/phase5/test_e2e.py
+import file mismatch:
+imported module 'test_e2e' has this __file__ attribute:
+  ...\tests\phase3\test_e2e.py
+which is not the same as the test file we want to collect:
+  ...\tests\phase5\test_e2e.py
+Interrupted: 1 error during collection
+```
+
+**Why:** `tests/phase3/test_e2e.py` and `tests/phase5/test_e2e.py` share a basename. Without an `__init__.py` in each folder, pytest imports test modules by their bare filename, so the second `test_e2e` collides with the first and collection aborts. `tests/`, `tests/phase1`, `tests/phase2` and `tests/ours` all had one; **phase3, phase4 and phase5 never got one**, because each was created in a different session and nobody ran the whole suite together afterwards.
+
+**Fix:** added the three missing `__init__.py` files, matching the layout the other folders already used. `pytest tests/` now collects all **142** tests and runs them.
+
+**The lesson, and it is the real one:** each phase was verified in isolation and each looked fine. The failure only existed in the combination, and only appeared when someone ran the exact command a reviewer runs. **Test the thing the grader will actually type**, not just the thing you were working on.
+
 ### 2026-09-07 · T-66 — The Gemini free tier is 500 requests a **day**, and one full test run gets close
 
 **What happened:** near the end of this run the AI stopped answering entirely — `RESOURCE_EXHAUSTED`, but this time naming `GenerateRequestsPerDayPerProjectPerModel-FreeTier`, `limit: 500`. T-55 documented the *per-minute* cap (5/min) and how the SDK's own backoff rides over it. This is a different, harder wall: once the day's 500 are gone, no amount of waiting inside a run helps. It resets on Google's clock, not ours.

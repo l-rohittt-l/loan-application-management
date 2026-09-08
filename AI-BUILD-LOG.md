@@ -63,4 +63,22 @@ for Phase 1, against `rules.AGE_LIMITS`, plus the home-loan-must-end-before-70
 rule. When date of birth is genuinely missing, age passes by default — a bank
 cannot fail someone on data it never collected.
 
+### All three were carried through — confirmed 2026-09-08
+
+The section above was written while *planning* Phases 4 and 5, before either
+existed. Both are now built, so here is where each fix actually lives:
+
+| Bug | Where the fix is |
+|---|---|
+| 1. Static JWT | `app/services/loan_api_client.py` — `service_token()` mints a fresh token per call. Phase 4's `mcp_app.py` and Phase 5's `data_collector.py` both go through it; neither reads `API_JWT_TOKEN`. |
+| 2. `raise_for_status()` | The same shared client. Every call returns `(ok, value)` and never raises. Phase 4's tools turn a failure into `{"error": ..., "detail": ...}`; `TC-01-P4-MCP-08` checks exactly that. |
+| 3. Fake age check | `multi_agent/agents/compliance_checker.py` — `_check_age()` parses the applicant's real date of birth and checks it against `rules.AGE_LIMITS`, including the home-loan-ends-before-70 rule. |
+
+Worth saying out loud in a code walkthrough: these were found by reading the
+trainer's reference code rather than by a test failing, because **no test in the
+programme would have caught any of them.** A static token passes every test on
+the day it is created. `raise_for_status()` only bites on an error path nothing
+exercises. And an age check that always returns true passes a test suite that
+never supplies an ineligible age.
+
 ---
