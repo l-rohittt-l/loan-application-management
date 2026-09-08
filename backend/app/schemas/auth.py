@@ -6,7 +6,7 @@ Two ways in (decision D-07):
   - ApplicantSignupRequest: customers. Creates a login AND a borrower profile.
 """
 
-from datetime import date, datetime
+from datetime import date
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 

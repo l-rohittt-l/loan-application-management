@@ -2,7 +2,6 @@
 Schema for the manager's activity view (D-11).
 """
 
-from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 

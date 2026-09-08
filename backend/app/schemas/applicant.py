@@ -4,7 +4,7 @@ Schemas for the borrower profile.
 `CreateApplicantSchema` is a name the trainer's tests import (T-06).
 """
 
-from datetime import date, datetime
+from datetime import date
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 

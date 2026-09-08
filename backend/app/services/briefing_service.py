@@ -17,14 +17,13 @@ briefing still renders — as the facts, without the prose.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 import structlog
 from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 
 from app.domain import rules
-from app.models.applicant import Applicant
 from app.models.application import ApplicationStatus, LoanApplication
 from app.models.document import Document
 from app.models.user import User

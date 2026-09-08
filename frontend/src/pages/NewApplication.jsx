@@ -105,9 +105,19 @@ export default function NewApplication() {
     );
   }
 
+  // `quiet` is the automatic check that fires as you type: it shows a small
+  // "rechecking" note rather than putting the whole form in its busy state,
+  // and it stays silent on failure, because an error banner appearing while
+  // someone is still typing is noise rather than help. Pressing the button
+  // is the loud version, and that one does report problems.
+  function setCheckBusy(quiet, isBusy) {
+    if (quiet) setChecking(isBusy);
+    else setBusy(isBusy);
+  }
+
   async function runCheck({ quiet = false } = {}) {
     if (!quiet && !validate()) return null;
-    quiet ? setChecking(true) : setBusy(true);
+    setCheckBusy(quiet, true);
     if (!quiet) setError("");
     try {
       const res = await api.post("/applications/check-eligibility", payload());
@@ -118,7 +128,7 @@ export default function NewApplication() {
       if (!quiet) setError(errorMessage(err));
       return null;
     } finally {
-      quiet ? setChecking(false) : setBusy(false);
+      setCheckBusy(quiet, false);
     }
   }
 

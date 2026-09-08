@@ -8,7 +8,6 @@ expects the schema itself to reject them. The tighter per-loan-type limits
 are checked in the service, where we can also explain why.
 """
 
-from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 

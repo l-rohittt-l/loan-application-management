@@ -4,7 +4,6 @@ Schemas for documents.
 `CreateDocumentSchema` is a name the trainer's tests import (T-06).
 """
 
-from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 

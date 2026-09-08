@@ -12,7 +12,6 @@ the browser.
 """
 
 import os
-from datetime import date
 
 import requests
 import streamlit as st
