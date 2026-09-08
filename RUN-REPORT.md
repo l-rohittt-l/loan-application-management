@@ -168,6 +168,13 @@ In this order:
 4. **Fix T-65 properly** — give the Phase 3/4/5 tests their own database instead of relying on a cleanup script and a good memory.
 5. **Have the provider-switching discussion** when you want it. Parked in `FUTURE-UPGRADES.md` with the open questions.
 
+**Found and fixed on 2026-09-08, after a sweep for anything still broken:**
+
+- **`pytest tests/` — the command a reviewer types first — did not work at all.** Every phase passed individually, but running them together aborted during collection, before a single test ran, because Phase 3 and Phase 5 both have a `test_e2e.py` and three test folders were missing an `__init__.py`. Fixed; all 142 tests now collect and run in one command (T-72). This is the most valuable thing found today, because it would have been the grader's first impression.
+- **The README documented only Phase 1.** It still said "Phase 1 status: complete" and gave no way to run the Phase 4 chat interface or the Phase 5 review. Rewritten to cover all five phases, with every command verified by running it.
+- **A third model value nobody had noticed.** `.env` said `gemini-3.5-flash-lite` but `config.py`'s fallback default said `gemini-3.8-flash` — so a fresh clone, before anyone fills in `.env`, would have silently run a model that was never chosen and never rate-limit tested. All three sources now agree (T-69).
+- **Lint and dead-import sweep**, the first since the build. Found a ternary used as a statement in Piece 19's code, which works but reads badly and would be awkward in a walkthrough, and seven dead imports. Cleaned up.
+
 **Done since this report was first written, on 2026-09-08:**
 
 - ~~Confirm Phase 2~~ — done, 22 of 22, three runs, quota was the only culprit.
