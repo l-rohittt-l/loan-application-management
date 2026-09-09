@@ -94,31 +94,25 @@ def get_collection_name(provider: str | None = None) -> str:
     return base if provider == GEMINI else f"{base}_{provider}"
 
 
-def get_llm(temperature: float = 0.1, **kwargs):
-    """
-    The chat model.
+def _build_gemini_llm(temperature: float, **kwargs):
+    """Gemini's chat model on its own, with no fallback wrapped around it."""
+    from langchain_google_genai import ChatGoogleGenerativeAI
 
-    Temperature 0.1 is the Phase 2 default: predictable and factual rather than
-    creative. Phase 3's agent asks for 0 instead, so it picks the same tool for
-    the same question every time.
-    """
-    provider = current_provider()
-
-    if provider == GEMINI:
-        from langchain_google_genai import ChatGoogleGenerativeAI
-
-        if not settings.google_api_key:
-            raise RuntimeError(
-                "GOOGLE_API_KEY is empty. Put the key in backend/.env, or set "
-                "LLM_PROVIDER=ollama to use the local fallback."
-            )
-        return ChatGoogleGenerativeAI(
-            model=settings.gemini_chat_model,
-            google_api_key=settings.google_api_key,
-            temperature=temperature,
-            **kwargs,
+    if not settings.google_api_key:
+        raise RuntimeError(
+            "GOOGLE_API_KEY is empty. Put the key in backend/.env, or set "
+            "LLM_PROVIDER=ollama to use the local fallback."
         )
+    return ChatGoogleGenerativeAI(
+        model=settings.gemini_chat_model,
+        google_api_key=settings.google_api_key,
+        temperature=temperature,
+        **kwargs,
+    )
 
+
+def _build_ollama_llm(temperature: float, **kwargs):
+    """Ollama's chat model on its own."""
     from langchain_ollama import ChatOllama
 
     return ChatOllama(
@@ -129,11 +123,97 @@ def get_llm(temperature: float = 0.1, **kwargs):
     )
 
 
+def ollama_reachable(timeout: float = 1.0) -> bool:
+    """
+    Is there an Ollama server answering on this machine right now?
+
+    Asked before we bother attaching Ollama as a fallback. Without this check, a
+    laptop with no Ollama installed would wrap every Gemini call in a fallback
+    that can only fail a second time — turning one clear error into two, and
+    doubling how long the user waits for it.
+
+    Deliberately cheap and deliberately silent: one HTTP GET with a short
+    timeout, and any failure at all means "no".
+    """
+    import urllib.request
+
+    try:
+        urllib.request.urlopen(settings.ollama_base_url, timeout=timeout).read(1)
+        return True
+    except Exception:                                       # noqa: BLE001
+        return False
+
+
+def get_llm(temperature: float = 0.1, fallback: bool = True, **kwargs):
+    """
+    The chat model, with an automatic fallback to the other provider.
+
+    Temperature 0.1 is the Phase 2 default: predictable and factual rather than
+    creative. Phase 3's agent asks for 0 instead, so it picks the same tool for
+    the same question every time.
+
+    **Why this falls back on its own.** Gemini is the default provider and it is
+    the better model, but its free tier has a daily cap that has run out in the
+    middle of a working session before, and the company network has blocked it
+    outright for weeks at a time. Either one used to mean editing `.env` and
+    restarting the server — impossible while somebody is watching a demo. Now
+    the first call that fails is retried against Ollama on the same machine, and
+    the answer still arrives.
+
+    LangChain's own `.with_fallbacks()` does the work: it returns a model that
+    tries the first one and moves to the second on **any** exception, which is
+    what we want here, since a quota refusal, a network block and a withdrawn
+    model all look different but all mean "ask the other one".
+
+    Two things it deliberately does not do:
+
+    - **It never falls back the other way.** If `.env` names Ollama, Ollama is
+      what runs. Someone who chose the local model chose it for a reason, and
+      quietly sending their question to Google would be a worse surprise than an
+      error.
+    - **It does not touch embeddings.** See `get_embeddings()` for why that one
+      must never switch by itself.
+
+    Pass `fallback=False` for a bare model with nothing wrapped around it, which
+    is what `check_ready()` uses to report on one provider honestly.
+    """
+    provider = current_provider()
+
+    if provider == OLLAMA:
+        return _build_ollama_llm(temperature, **kwargs)
+
+    primary = _build_gemini_llm(temperature, **kwargs)
+
+    # Only attach a fallback if Ollama is actually there to answer.
+    if not fallback or not ollama_reachable():
+        return primary
+
+    logger.info(
+        "llm_fallback_armed",
+        operation="llm_fallback_armed",
+        primary=settings.gemini_chat_model,
+        fallback=settings.ollama_chat_model,
+    )
+    return primary.with_fallbacks([_build_ollama_llm(temperature, **kwargs)])
+
+
 def get_embeddings():
     """
     The model that turns a piece of text into a list of numbers representing its
     meaning. Gemini's returns 3072 numbers per chunk; Ollama's nomic-embed-text
     returns 768.
+
+    **This one has no automatic fallback, and that is on purpose.** `get_llm()`
+    falls back to Ollama the moment Gemini refuses, because one chat model can
+    always answer in another's place. Embeddings cannot. Each provider's numbers
+    live in their own ChromaDB collection, and the manual has to have been
+    ingested into that collection first. If this silently switched provider, the
+    retriever would go looking in a collection that is very likely empty and the
+    chatbot would answer from nothing at all — confidently, with no error and no
+    sources. A visible failure is far better than a confident wrong answer.
+
+    So switching embedding provider stays a deliberate act: change
+    `LLM_PROVIDER` in `.env` and re-run `python -m rag.ingest`.
     """
     provider = current_provider()
 
@@ -168,12 +248,20 @@ def describe() -> dict:
         chat, embed = settings.gemini_chat_model, settings.gemini_embed_model
     else:
         chat, embed = settings.ollama_chat_model, settings.ollama_embed_model
-    return {
+    out = {
         "provider": provider,
         "chat_model": chat,
         "embed_model": embed,
         "collection": get_collection_name(provider),
     }
+    # Worth surfacing: on Gemini, whether the automatic Ollama fallback has
+    # something to fall back to. Answers "is the safety net actually there?"
+    # without anyone having to break Gemini to find out.
+    if provider == GEMINI:
+        out["chat_fallback"] = (
+            settings.ollama_chat_model if ollama_reachable() else None
+        )
+    return out
 
 
 def check_ready() -> tuple[bool, str]:
@@ -186,7 +274,10 @@ def check_ready() -> tuple[bool, str]:
         provider = current_provider()
         if provider == GEMINI and not settings.google_api_key:
             return False, "GOOGLE_API_KEY is not set"
-        get_llm().invoke("Reply with the single word: ready")
+        # fallback=False on purpose: this is a health check, and a check that
+        # quietly passes because the *other* provider answered would be telling
+        # us the opposite of what we asked.
+        get_llm(fallback=False).invoke("Reply with the single word: ready")
         return True, f"{provider} responded"
     except Exception as e:                                  # noqa: BLE001
         logger.warning("llm_provider_unavailable", error=str(e)[:200])

@@ -64,6 +64,15 @@ chromadb==1.5.9
 google-genai==2.22.0            # plain HTTPS embedding calls (T-52); langchain-google-genai depends on this
 langsmith==0.12.2               # tracing, Phase 2 OBS-01/04 onwards
 
+# The local fallback provider. llm_provider.py has always imported
+# `langchain_ollama` on the Ollama branch, but the package was never listed here
+# and never installed anywhere — so `LLM_PROVIDER=ollama` died on
+# ModuleNotFoundError the first time anyone tried it (T-83). Needed on any
+# machine where Gemini is unreachable. 1.1.0 is the version whose langchain-core
+# floor (>=1.2.21) our pinned 1.6.2 satisfies; it pulls in `ollama` and `httpx2`
+# and changes no existing pin.
+langchain-ollama==1.1.0
+
 # ---------------------------------------------------------------------------
 # Phase 3 — the agent with five tools (no extra packages beyond Phase 2's
 # langchain stack; agent/ uses langchain_classic's create_react_agent)

@@ -33,7 +33,11 @@ The working documents at the root (`BUILD-PLAN.md`, `PROGRESS-LOG.md`, `TRAPS-AN
 
 ## Before you start
 
-You need **Python 3.11**, **Node 18+**, and git. You also need a **Google Gemini API key** for Phases 2 to 5 — the free tier is enough, with one caveat in "Things worth knowing" below.
+**Setting this up on the Wipro laptop? Use [SETUP-WIPRO.md](SETUP-WIPRO.md)
+instead of this section.** That machine needs Python 3.12 rather than 3.11, uses
+Ollama rather than Gemini, and has ready-made settings files waiting for it.
+
+You need **Python 3.11 or 3.12**, **Node 18+**, and git. You also need a **Google Gemini API key** for Phases 2 to 5 — the free tier is enough, with one caveat in "Things worth knowing" below.
 
 Everything is run from PowerShell.
 

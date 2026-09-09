@@ -4,6 +4,17 @@ Newest entries at the top. Short on purpose.
 
 ---
 
+## 2026-09-09 — Getting the project ready for the Wipro laptop
+
+**Asked for:** a survey prompt for the restricted work machine, then — once its answers came back — do as much of the setup work here as possible, because there will be no more round trips. Copilot finishes it over there.
+**Built:** `SETUP-WIPRO.md`, a step-by-step guide written against that machine's actual survey results, plus `backend/.env.wipro` and `frontend/.env.wipro`, which are ready-made settings files holding no secrets so they can travel in git. Added `langchain-ollama==1.1.0` to requirements. README now points at the guide.
+**Found:** two real bugs, neither of which the environment caused. **The Ollama fallback has never been able to run** — `llm_provider.py` imports `langchain_ollama`, but the package was in no requirements file and installed nowhere, so the fallback that exists precisely for a company network would have crashed the first time it was needed (T-83). And the survey said the restricted environment barely restricts anything: no proxy, no certificate interception, PyPI, npm, GitHub, Gemini and LangSmith all reachable, every port free.
+**Realised:** I got the Python reasoning wrong first time and the resolver caught me. I said 3.14 fails because numpy 1.26.4 has no wheel for it — but numpy is not pinned in `requirements.txt` at all, it is just what pip once happened to install here. Running the real resolver against 3.12, 3.13 and 3.14 showed the actual wall is Streamlit needing `pillow<11`, which has no 3.14 build. Same recommendation, completely different reason, and 3.13 turns out to work too. A version in `pip list` is not a constraint; only `requirements.txt` is.
+**Then asked for:** Gemini stays the default with Ollama as fallback, and the switch should happen automatically.
+**Also built:** exactly that. `get_llm()` now wraps Gemini in LangChain's `.with_fallbacks()`, so when Gemini refuses — dead daily quota, blocked network, withdrawn model — the very next question is retried against Ollama and the answer still arrives. No file to edit, no restart, nothing to notice mid-demo. Proved it by pointing Gemini at an invalid key: the question failed on Gemini and came back answered by Ollama. Eight tests hold it in place and use no AI quota.
+**Deliberately not done:** embeddings do not fall back, and that asymmetry is the important bit. Each provider keeps its own ChromaDB collection and Gemini's embedding model returns 3072 numbers per chunk against Ollama's 768. Checked the real database here: only the Gemini collection exists, 42 chunks. So a silent embedding switch would search a collection that isn't there and the chatbot would answer from nothing — confidently, no error, no sources. A visible failure beats a confident wrong answer, so switching retrieval provider stays a deliberate act plus a re-ingest.
+**Next:** send the project to the Wipro laptop and set it up there with Copilot, following `SETUP-WIPRO.md`.
+
 ## 2026-09-08 — Piece 22 step 3: the assistant now shows its working
 
 **Asked for:** put the tools the assistant used on the Assistant screen, the way the Phase 4 Streamlit chat already does for staff.

@@ -58,6 +58,130 @@ each with an ID, so he can review and overturn any of them afterwards.
 
 No decision needed. These break something quietly if forgotten.
 
+### From the Wipro laptop survey (2026-09-09)
+
+A fresh session ran the eight-section survey on the Wipro machine. Most of what we
+braced for was not there: no proxy, no TLS interception, PyPI, the npm registry,
+GitHub over HTTPS, Gemini and LangSmith all directly reachable, and ports 8000,
+5173 and 8501 all free and bindable as a non-admin. The findings below are what
+did come back.
+
+**T-78 · The Wipro laptop needs Python 3.12 — settled 2026-09-09, corrected same day.**
+That machine defaults to 3.14.5 and has a per-user 3.13; `py -0p` confirmed no
+real 3.11 exists (the 3.11.15 the survey saw lives only inside another project's
+`venv\` folder, which cannot seed a new environment). 3.12.6 is now installed.
+
+**The real reason 3.14 fails is Pillow, not numpy.** My first answer here blamed
+`numpy==1.26.4`, whose Windows wheels stop at 3.12 — but numpy is not pinned in
+`requirements.txt` at all. It is a transitive dependency, and 1.26.4 is merely
+what pip happened to pick on this laptop long ago. On a newer Python, pip would
+have resolved a newer numpy quite happily. Caught by actually running the
+resolver instead of reasoning about it.
+
+What actually breaks: **streamlit 1.36.0 requires `pillow<11`, and Pillow first
+published Windows builds for 3.14 at 11.3.** Nothing satisfies both, so pip halts
+with `No matching distribution found for pillow<11,>=7.1.0`. A hard wall, not a
+slow compile.
+
+Verified by resolving the whole file against three interpreters with
+`pip install --dry-run --only-binary=:all: --python-version X`:
+
+| Python | Result |
+|---|---|
+| 3.12 | all 180 packages resolve as ready-built wheels |
+| 3.13 | also resolves cleanly — a genuine fallback |
+| 3.14 | fails on Pillow |
+
+So 3.12 is the recommendation and the environment is created with
+`py -3.12 -m venv venv` so the 3.14 default is never picked up. **3.13 is a
+working backup**, which matters because it is already on that machine. No pins
+change and no code changes. The existing per-user 3.13 install also proves the
+company catalogue installs without admin rights.
+
+**The lesson worth keeping:** a version number sitting in a `pip list` is not a
+constraint. Only what is written in `requirements.txt` is. I read the installed
+numpy as though it were pinned and built a recommendation on it, and the
+recommendation happened to survive for a completely different reason.
+
+**T-79 · The Ollama models there are not the ones our config names.** The laptop
+has `nomic-embed-text:v1.5` and `qwen3.5:0.8b`. Our `.env` and `config.py` default
+to `nomic-embed-text` (no tag) for embeddings and `llama3.1` for chat. The
+embedding name is one tag away; the chat model is a different model entirely and
+much smaller. Fix on our side by setting `OLLAMA_CHAT_MODEL` and
+`OLLAMA_EMBED_MODEL` in that machine's `.env`, not by pulling models there.
+
+**T-80 · Do not move the ports.** All three of ours are free on that machine.
+`tests/phase3`, `tests/phase4` and `tests/phase5` each hardcode
+`http://localhost:8000/health` in their `conftest.py`, so changing the backend
+port would break the trainer's own test setup for no gain. Leave them.
+
+**T-81 · Two things the survey could not establish.** It only tested binding on
+loopback, never on all interfaces, so whether Windows Firewall prompts on a real
+`uvicorn` start — and whether Rohit can approve that prompt himself — is still
+unknown. And Cortex XDR is running as the corporate endpoint protection; nothing
+tested it against a live dev server or against a folder filling with `node_modules`.
+Both are first-run risks, not blockers.
+
+**T-84 · The provider fallback is automatic for chat and deliberately manual for
+embeddings — 2026-09-09.** Rohit asked for the Gemini-to-Ollama switch to happen
+by itself, because editing `.env` and restarting mid-demo is not possible. Built
+in `get_llm()` using LangChain's own `.with_fallbacks()`, which retries on the
+second model on any exception — right for us, since a dead quota, a network block
+and a withdrawn model all look different but all mean "ask the other one".
+
+**Embeddings deliberately do NOT do this, and nobody should later "fix" the
+inconsistency.** Each provider's vectors live in their own ChromaDB collection
+(`poc_01_loan_manual` vs `poc_01_loan_manual_ollama`, per T-46), and Gemini's
+embedding model returns 3072 numbers per chunk against Ollama's 768. If
+embeddings switched silently, the retriever would search a collection that in
+most cases does not exist, and the chatbot would answer from nothing at all —
+confidently, no error, no sources. Verified on this laptop: only the Gemini
+collection exists here, 42 chunks at 3072 numbers, so that failure mode is live
+rather than theoretical. A visible failure beats a confident wrong answer.
+
+Three more decisions inside it, each with a reason:
+
+- **One direction only.** If `.env` names Ollama, Gemini is never called behind
+  the user's back. Choosing the local model is usually a privacy or network
+  choice, and quietly overriding it would be the worse surprise.
+- **The fallback is only attached if Ollama actually answers**, probed with a
+  one-second HTTP GET. Otherwise every Gemini failure would become two failures
+  and twice the wait.
+- **`check_ready()` passes `fallback=False`.** A health check that passes because
+  the *other* provider answered reports the opposite of what was asked.
+
+Proved by pointing Gemini at an invalid key with a stand-in Ollama running: the
+question failed on Gemini and came back answered by Ollama, no restart. Eight
+tests in `tests/ours/test_llm_fallback.py` hold it in place and use no AI quota.
+
+**T-83 · The Ollama fallback could never have run — fixed 2026-09-09.**
+`llm_provider.py` imports `langchain_ollama` on its Ollama branch and always has,
+but the package was never listed in `requirements.txt` and was not installed in
+this laptop's venv either. So the fallback that exists specifically because
+"Gemini was blocked on the company network for six weeks" would have died on
+`ModuleNotFoundError` the first time anyone actually needed it — on the Wipro
+machine, where Ollama is the whole point. It went unnoticed because every test
+and every run so far has used Gemini, so that branch of the `if` had never once
+executed.
+
+Fixed by pinning `langchain-ollama==1.1.0`, the version whose `langchain-core`
+floor (>=1.2.21) our pinned 1.6.2 satisfies. Installing it added three packages
+(`langchain-ollama`, `ollama`, `httpx2`) and changed no existing pin; `pip check`
+reports nothing new. Proved the branch now builds by constructing both objects
+with the Wipro laptop's exact model strings, and confirmed it selects the
+separate `poc_01_loan_manual_ollama` collection so the two providers' vectors
+still cannot mix (T-46).
+
+**Worth generalising:** a fallback path that no test exercises is not a fallback.
+Nothing about this project's green test suite could have caught it, because the
+suite never sets `LLM_PROVIDER=ollama`.
+
+**T-82 · The corrupted git repo there is not ours.** `git fsck` found a tree
+pointing at a missing blob in `C:\New Folder\Desktop\AI Readiness Project`, which
+is a different project in a different folder. A fresh clone sidesteps it entirely.
+Worth knowing only so nobody spends time repairing it.
+
+
 ### From the Phase 1 test spec
 
 **T-01 · The 401 vs 403 trap.** FastAPI's built-in bearer token helper returns **403** when the Authorization header is missing. Test `TC-01-P1-API-06` asserts **401**. Fix: turn off the automatic error and raise the 401 ourselves.
