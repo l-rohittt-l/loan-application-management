@@ -147,7 +147,7 @@ To check which collections actually hold anything:
 
 ```powershell
 cd backend
-.env\Scripts\python.exe -c "import chromadb; c=chromadb.PersistentClient(path='./chroma_db'); print([(x.name, c.get_collection(x.name).count()) for x in c.list_collections()])"
+.\venv\Scripts\python.exe -c "import chromadb; c=chromadb.PersistentClient(path='./chroma_db'); print([(x.name, c.get_collection(x.name).count()) for x in c.list_collections()])"
 ```
 
 You want to see a non-zero count against the collection for the provider you
